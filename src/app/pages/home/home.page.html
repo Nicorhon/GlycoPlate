@@ -1,0 +1,87 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar color="primary">
+    <ion-title style="font-weight: 800; letter-spacing: 1px;">GLYCOPLATE</ion-title>
+    <ion-buttons slot="end">
+      <ion-badge color="secondary">Live</ion-badge>
+    </ion-buttons>
+  </ion-toolbar>
+  
+  <ion-toolbar color="primary">
+    <ion-segment value="daily" (ionChange)="filterChange($event)" mode="md" style="--background: rgba(255,255,255,0.1);">
+      <ion-segment-button value="daily"><ion-label>Daily</ion-label></ion-segment-button>
+      <ion-segment-button value="weekly"><ion-label>Weekly</ion-label></ion-segment-button>
+      <ion-segment-button value="monthly"><ion-label>Monthly</ion-label></ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="ion-padding-horizontal ion-padding-top">
+    <ion-note color="tertiary" style="display: flex; align-items: center;">
+      <ion-icon name="radio-outline" style="margin-right: 5px;"></ion-icon>
+      Connected to Smart Plate #01
+    </ion-note>
+  </div>
+
+  <ion-card *ngIf="weightStatus === 'too-much'" mode="ios" style="--background: #f6e6a5; border: 1px solid #343b1b;">
+    <ion-item lines="none" style="--background: transparent;">
+      <ion-icon name="warning" slot="start" color="tertiary"></ion-icon>
+      <ion-label class="ion-text-wrap">
+        <h2 style="font-weight: bold; color: #343b1b;">Portion Limit Exceeded</h2>
+        <p style="color: #343b1b;">
+          Current: <strong>{{ currentWeight }}g</strong>. 
+          Please remove <strong>{{ weightDiff }}g</strong> to maintain low GI stability.
+        </p>
+      </ion-label>
+    </ion-item>
+  </ion-card>
+
+  <ion-card mode="ios" style="--background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+    <ion-card-header>
+      <ion-row class="ion-align-items-center">
+        <ion-col>
+          <ion-card-subtitle color="primary">TOTAL CONSUMPTION</ion-card-subtitle>
+          <ion-card-title style="font-size: 1.8rem; font-weight: bold; color: #343b1b;">
+            {{ dailyIntake }}<span style="font-size: 0.9rem; font-weight: normal;"> / {{ maxDailyLimit }}g</span>
+          </ion-card-title>
+        </ion-col>
+        <ion-col size="auto">
+          <ion-icon name="fast-food" color="secondary" style="font-size: 2.5rem;"></ion-icon>
+        </ion-col>
+      </ion-row>
+    </ion-card-header>
+    
+    <ion-card-content>
+      <ion-progress-bar 
+        [value]="dailyIntake / maxDailyLimit" 
+        style="height: 12px; border-radius: 6px; --progress-background: #c8d69b; --buffer-background: #fbfcee;">
+      </ion-progress-bar>
+      
+      <div class="ion-padding-top" *ngIf="dailyIntake >= maxDailyLimit">
+        <ion-chip color="danger" outline="true">
+          <ion-icon name="alert-circle"></ion-icon>
+          <ion-label>Daily limit reached</ion-label>
+        </ion-chip>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-card mode="ios">
+    <ion-card-header>
+      <ion-card-title color="tertiary">Nutritional Trend</ion-card-title>
+    </ion-card-header>
+    <div style="height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fbfcee; border-radius: 12px; margin: 0 15px 15px;">
+      <ion-spinner name="crescent" color="primary"></ion-spinner>
+      <p style="color: #343b1b; margin-top: 10px; font-size: 0.8rem;">Analyzing glycemic fluctuations...</p>
+    </div>
+  </ion-card>
+
+  <ion-item lines="none" class="ion-margin" style="--background: #c8d69b; border-radius: 12px;">
+    <ion-icon name="bulb" slot="start" color="primary"></ion-icon>
+    <ion-label class="ion-text-wrap">
+      <h3 style="font-weight: bold;">Daily Health Tip</h3>
+      <p style="color: #343b1b;">Fiber helps slow sugar absorption. Try adding greens to this meal!</p>
+    </ion-label>
+  </ion-item>
+
+</ion-content>

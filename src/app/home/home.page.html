@@ -1,0 +1,125 @@
+<ion-header [translucent]="true" class="ion-no-border">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>GlycoPlate Dashboard</ion-title>
+    <ion-buttons slot="end">
+      <ion-button routerLink="/profile">
+        <ion-icon name="person-circle-outline" size="large"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+
+  <ion-toolbar>
+    <ion-segment [value]="timeframe" (ionChange)="filterChange($event)" mode="md">
+      <ion-segment-button value="daily">
+        <ion-label>Daily</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="weekly">
+        <ion-label>Weekly</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="monthly">
+        <ion-label>Monthly</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding gray-bg">
+
+  <ion-card *ngIf="weightStatus === 'too-much'" class="warning-card animate__animated animate__headShake">
+    <ion-item lines="none" color="warning">
+      <ion-icon name="scale-outline" slot="start"></ion-icon>
+      <ion-label class="ion-text-wrap">
+        <h2 style="font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Portion Overload</h2>
+        <p>Current: <strong>{{ currentWeight }}g</strong>. Remove <strong>{{ weightDiff }}g</strong> to hit your target.</p>
+      </ion-label>
+    </ion-item>
+  </ion-card>
+
+  <ion-card mode="ios" class="main-stats-card">
+    <ion-card-content>
+      <div class="stats-container">
+        <div class="circular-progress">
+          <div class="progress-text">
+            <h1>{{ (dailyIntake / maxDailyLimit * 100).toFixed(0) }}%</h1>
+            <p>of daily limit</p>
+          </div>
+        </div>
+        
+        <div class="stats-details">
+          <ion-text color="medium"><h5>Total Intake</h5></ion-text>
+          <h2>{{ dailyIntake }} <small>/ {{ maxDailyLimit }}g</small></h2>
+          <ion-badge [color]="dailyIntake >= maxDailyLimit ? 'danger' : 'success'">
+            {{ dailyIntake >= maxDailyLimit ? 'Limit Exceeded' : 'On Track' }}
+          </ion-badge>
+        </div>
+      </div>
+      
+      <ion-progress-bar 
+        class="main-progress"
+        [value]="dailyIntake / maxDailyLimit" 
+        [color]="dailyIntake >= maxDailyLimit ? 'danger' : 'success'">
+      </ion-progress-bar>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-row>
+    <ion-col size="6">
+      <ion-card class="mini-card" mode="ios">
+        <ion-card-content>
+          <ion-icon name="leaf-outline" color="success"></ion-icon>
+          <p>Carbs</p>
+          <h3>45g</h3>
+        </ion-card-content>
+      </ion-card>
+    </ion-col>
+    <ion-col size="6">
+      <ion-card class="mini-card" mode="ios">
+        <ion-card-content>
+          <ion-icon name="flame-outline" color="danger"></ion-icon>
+          <p>Protein</p>
+          <h3>32g</h3>
+        </ion-card-content>
+      </ion-card>
+    </ion-col>
+  </ion-row>
+
+  <ion-card mode="ios" class="chart-card">
+    <ion-card-header>
+      <ion-card-title>Nutritional Trend</ion-card-title>
+    </ion-card-header>
+    <div class="chart-placeholder">
+       <canvas id="trendChart"></canvas>
+    </div>
+  </ion-card>
+
+  <ion-list-header>
+    <ion-label>Quick Actions</ion-label>
+  </ion-list-header>
+  
+  <ion-grid>
+    <ion-row>
+      <ion-col size="4" class="ion-text-center">
+        <ion-fab-button color="light" size="small" routerLink="/history">
+          <ion-icon name="add-outline"></ion-icon>
+        </ion-fab-button>
+        <p class="small-label">Log Food</p>
+      </ion-col>
+      <ion-col size="4" class="ion-text-center">
+        <ion-fab-button color="light" size="small" routerLink="/camera">
+          <ion-icon name="camera-outline"></ion-icon>
+        </ion-fab-button>
+        <p class="small-label">Scan Plate</p>
+      </ion-col>
+      <ion-col size="4" class="ion-text-center">
+        <ion-fab-button color="light" size="small">
+          <ion-icon name="water-outline"></ion-icon>
+        </ion-fab-button>
+        <p class="small-label">Hydration</p>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
+
+</ion-content>

@@ -1,0 +1,18 @@
+:root {
+  /** Custom Palette **/
+  --ion-color-primary: #3971b8;        /* Blue - Trusted/Medical */
+  --ion-color-primary-rgb: 57, 113, 184;
+  
+  --ion-color-secondary: #c8d69b;      /* Sage Green - Healthy/Natural */
+  --ion-color-secondary-rgb: 200, 214, 155;
+
+  --ion-color-tertiary: #343b1b;       /* Dark Olive - Text/Accents */
+  
+  --ion-color-warning: #f6e6a5;       /* Pale Yellow - Warning */
+  
+  --ion-background-color: #fbfcee;    /* Off-white - Soft Background */
+}
+
+/* Custom CSS classes for extra control */
+.bg-sage { background-color: #c8d69b; }
+.text-olive { color: #343b1b; }

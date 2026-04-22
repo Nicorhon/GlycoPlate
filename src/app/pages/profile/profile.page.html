@@ -1,0 +1,88 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar color="primary">
+    <ion-title style="font-weight: 700;">MY HEALTH ID</ion-title>
+    <ion-buttons slot="end">
+      <ion-button>
+        <ion-icon slot="icon-only" name="settings-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content style="--background: #fbfcee;">
+  <div class="ion-text-center ion-padding" style="background: #c8d69b; border-bottom-left-radius: 30px; border-bottom-right-radius: 30px; padding-bottom: 30px;">
+    <div style="position: relative; display: inline-block;">
+      <ion-avatar style="width: 110px; height: 110px; margin: 0 auto; border: 4px solid #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+        <img src="https://ionicframework.com/docs/img/demos/avatar.svg" />
+      </ion-avatar>
+      <ion-badge color="primary" style="position: absolute; bottom: 5px; right: 5px; padding: 5px; border-radius: 50%;">
+        <ion-icon name="camera-reverse"></ion-icon>
+      </ion-badge>
+    </div>
+    <h2 style="color: #343b1b; font-weight: 800; margin-top: 15px; margin-bottom: 5px;">Juan Dela Cruz</h2>
+    <p style="color: #343b1b; opacity: 0.8; margin-top: 0;">Philippines | User ID: GP-2026</p>
+  </div>
+
+  <div class="ion-padding">
+    <h3 style="color: #343b1b; font-weight: 700; margin-left: 5px;">Current Metrics</h3>
+    <ion-card mode="ios" style="margin: 0; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+      <ion-list lines="full">
+        <ion-item>
+          <ion-icon name="pulse-outline" slot="start" color="primary"></ion-icon>
+          <ion-label>
+            <h3 style="font-weight: 600;">Condition</h3>
+            <p>Type 2 Diabetes Monitoring</p>
+          </ion-label>
+        </ion-item>
+        <ion-item>
+          <ion-icon name="nutrition-outline" slot="start" color="primary"></ion-icon>
+          <ion-label>
+            <h3 style="font-weight: 600;">Daily Carb Goal</h3>
+            <p>Limit: 225g per day</p>
+          </ion-label>
+        </ion-item>
+      </ion-list>
+    </ion-card>
+
+    <h3 style="color: #343b1b; font-weight: 700; margin-top: 25px; margin-left: 5px;">Glycemic Guide</h3>
+    <ion-grid class="ion-no-padding">
+      <ion-row>
+        <ion-col size="12">
+          <ion-card mode="ios" style="--background: #fff; margin: 5px 0; border-left: 10px solid #c8d69b;">
+            <ion-item lines="none" style="--background: transparent;">
+              <ion-label>
+                <h2 style="font-weight: 700; color: #343b1b;">LOW GI (0-55)</h2>
+                <p>Ensures stable blood sugar levels.</p>
+              </ion-label>
+              <ion-badge style="--background: #c8d69b; color: #343b1b;">SAFE</ion-badge>
+            </ion-item>
+          </ion-card>
+        </ion-col>
+        
+        <ion-col size="12">
+          <ion-card mode="ios" style="--background: #fff; margin: 5px 0; border-left: 10px solid #f6e6a5;">
+            <ion-item lines="none" style="--background: transparent;">
+              <ion-label>
+                <h2 style="font-weight: 700; color: #343b1b;">MEDIUM GI (56-69)</h2>
+                <p>Consume in moderate portions.</p>
+              </ion-label>
+              <ion-badge style="--background: #f6e6a5; color: #343b1b;">CAUTION</ion-badge>
+            </ion-item>
+          </ion-card>
+        </ion-col>
+
+        <ion-col size="12">
+          <ion-card mode="ios" style="--background: #fff; margin: 5px 0; border-left: 10px solid #eb445a;">
+            <ion-item lines="none" style="--background: transparent;">
+              <ion-label>
+                <h2 style="font-weight: 700; color: #343b1b;">HIGH GI (70+)</h2>
+                <p>High risk of insulin spikes.</p>
+              </ion-label>
+              <ion-badge color="danger">LIMIT</ion-badge>
+            </ion-item>
+          </ion-card>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+  </div>
+</ion-content>

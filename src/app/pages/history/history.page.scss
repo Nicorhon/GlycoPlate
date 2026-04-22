@@ -1,0 +1,22 @@
+ion-content {
+  --background: #fbfcee;
+  --overflow: auto; // Crucial for scrolling
+}
+
+.meal-card {
+  --padding-start: 10px;
+  --padding-end: 10px;
+  --inner-padding-end: 10px;
+  transition: transform 0.2s;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+ion-searchbar {
+  --background: #fff;
+  --border-radius: 12px;
+  --placeholder-color: #343b1b;
+  --icon-color: #3971b8;
+}

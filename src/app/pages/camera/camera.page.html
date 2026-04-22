@@ -1,0 +1,67 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title style="font-weight: 700;">SMART SCAN</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="camera-layout-wrapper">
+    
+    <div class="camera-stack" id="camera-parent">
+      <div class="guide-overlay" *ngIf="isCameraActive && !photo">
+        <div class="guide-circle" [class.aligned]="isAligned">
+          <div class="zone-top">
+            <div class="z">25%<small>Protein</small></div>
+            <div class="z">25%<small>Carbs</small></div>
+          </div>
+          <div class="z zone-bottom">50%<small>Fiber/Veggies</small></div>
+          
+          <div class="center-label">PLACE PLATE</div>
+        </div>
+      </div>
+
+      <img *ngIf="photo" [src]="photo" class="captured-preview" />
+    </div>
+
+    <div class="controls-card">
+      <div class="weight-status ion-text-center ion-padding-top">
+        <ion-badge [color]="isAligned ? 'success' : 'danger'" class="weight-badge">
+          Live Weight: {{ (p1Weight + p2Weight + p3Weight) }}g
+        </ion-badge>
+        <p class="instruction-text">
+          {{ isAligned ? 'Plate detected! You can now capture.' : 'Align GlycoPlate within the guide' }}
+        </p>
+      </div>
+
+      <div *ngIf="portions.length > 0" class="results-list ion-padding">
+        <div *ngFor="let p of portions" class="portion-item">
+          <ion-chip [color]="p.color" outline="true">
+            <ion-label><strong>{{ p.label | titlecase }}</strong>: {{ p.weight }}g (GL: {{ p.gl | number:'1.1-1' }})</ion-label>
+          </ion-chip>
+          <p class="advice-text" [class.danger]="p.status === 'TOO MUCH'">{{ p.advice }}</p>
+        </div>
+      </div>
+
+      <div class="button-group ion-padding">
+        <ion-button *ngIf="!photo" (click)="captureImage()" expand="block" [disabled]="!isAligned" class="main-btn">
+          <ion-icon slot="start" name="camera"></ion-icon>
+          CAPTURE PLATE
+        </ion-button>
+
+        <ng-container *ngIf="photo">
+          <ion-button (click)="confirmAndSave()" expand="block" color="success" [disabled]="!canLog" class="main-btn">
+            <ion-icon slot="start" name="checkmark-circle"></ion-icon>
+            LOG MEAL
+          </ion-button>
+          <ion-button (click)="restartScan()" expand="block" fill="outline" color="medium" class="main-btn">
+            <ion-icon slot="start" name="refresh-outline"></ion-icon>
+            RETAKE
+          </ion-button>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+</ion-content>

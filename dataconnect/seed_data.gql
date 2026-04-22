@@ -1,0 +1,87 @@
+mutation CreateDemoData @transaction @auth(level: USER, insecureReason: "This is a seed data mutation, intended for internal use only. Not for production environment.") {
+  user_insertMany(data: [
+    {
+      id: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      displayName: "GlycoGuest",
+      email: "guest@glycoplate.com",
+      createdAt: "2024-01-01T00:00:00Z",
+      diabetesType: "Type 2",
+      photoUrl: "https://example.com/guest_photo.jpg"
+    }
+  ])
+  foodItem_insertMany(data: [
+    {
+      id: "0a1b2c3d-4e5f-6789-0123-456789abcdef",
+      name: "Apple",
+      glycemicIndex: 36,
+      carbohydratePerServing: 15.0,
+      servingSizeDescription: "1 medium apple",
+      category: "Fruit",
+      notes: "Good source of fiber."
+    },
+    {
+      id: "1a2b3c4d-5e6f-7890-1234-567890abcdef",
+      name: "White Bread",
+      glycemicIndex: 75,
+      carbohydratePerServing: 13.0,
+      servingSizeDescription: "1 slice",
+      category: "Grains",
+      notes: "High glycemic index."
+    },
+    {
+      id: "2a3b4c5d-6e7f-8901-2345-67890abcefgh",
+      name: "Chicken Breast",
+      glycemicIndex: 0,
+      carbohydratePerServing: 0.0,
+      servingSizeDescription: "100g cooked",
+      category: "Meat",
+      notes: "Zero carbs."
+    }
+  ])
+  meal_insertMany(data: [
+    {
+      id: "b2c3d4e5-f6a7-8901-2345-67890abcdef0",
+      userId: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      mealDate: "2024-03-08",
+      mealTime: "Breakfast",
+      createdAt: "2024-03-08T08:00:00Z",
+      notes: "Quick breakfast"
+    }
+  ])
+  mealEntry_insertMany(data: [
+    {
+      mealId: "b2c3d4e5-f6a7-8901-2345-67890abcdef0",
+      foodItemId: "0a1b2c3d-4e5f-6789-0123-456789abcdef",
+      quantity: "1 medium",
+      notes: "Enjoyed with coffee."
+    }
+  ])
+  mealPlan_insertMany(data: [
+    {
+      id: "c3d4e5f6-a7b8-9012-3456-7890abcdef01",
+      userId: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      name: "Weekly Low GI Plan",
+      createdAt: "2024-03-01T09:00:00Z",
+      updatedAt: "2024-03-07T18:00:00Z",
+      description: "A meal plan focused on low glycemic index foods for the week."
+    }
+  ])
+  mealPlanItem_insertMany(data: [
+    {
+      mealPlanId: "c3d4e5f6-a7b8-9012-3456-7890abcdef01",
+      foodItemId: "0a1b2c3d-4e5f-6789-0123-456789abcdef",
+      dayOfWeek: "Monday",
+      mealType: "Breakfast",
+      quantity: "1 apple",
+      notes: "Paired with nuts."
+    },
+    {
+      mealPlanId: "c3d4e5f6-a7b8-9012-3456-7890abcdef01",
+      foodItemId: "2a3b4c5d-6e7f-8901-2345-67890abcefgh",
+      dayOfWeek: "Tuesday",
+      mealType: "Lunch",
+      quantity: "150g",
+      notes: "With steamed vegetables."
+    }
+  ])
+}

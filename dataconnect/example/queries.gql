@@ -1,0 +1,50 @@
+query ListAllFoodItems @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public as it only lists food items without revealing sensitive user data.") {
+  foodItems {
+    id
+    name
+    glycemicIndex
+    carbohydratePerServing
+    servingSizeDescription
+    category
+  }
+}
+
+mutation CreateNewMealPlan($name: String!, $description: String) @auth(level: USER) {
+  mealPlan_insert(data: {
+    name: $name,
+    description: $description,
+    userId_expr: "auth.uid",
+    createdAt_expr: "request.time",
+    updatedAt_expr: "request.time"
+  }) {
+    id
+  }
+}
+
+query GetMyMealsToday @auth(level: USER) {
+  meals(where: {userId: {eq_expr: "auth.uid"}, mealDate: {eq_date: {today: true}}}) {
+    id
+    mealDate
+    mealTime
+    notes
+    mealEntries_on_meal {
+      id
+      quantity
+      foodItem {
+        name
+        glycemicIndex
+      }
+    }
+  }
+}
+
+mutation AddFoodItemToMealEntry($mealId: UUID!, $foodItemId: UUID!, $quantity: String!, $notes: String) @auth(level: USER) {
+  mealEntry_insert(data: {
+    mealId: $mealId,
+    foodItemId: $foodItemId,
+    quantity: $quantity,
+    notes: $notes
+  }) {
+    id
+  }
+}

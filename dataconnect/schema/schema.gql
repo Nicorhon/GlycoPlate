@@ -1,0 +1,48 @@
+type User @table {
+  displayName: String!
+  createdAt: Timestamp!
+  email: String
+  photoUrl: String
+  diabetesType: String
+}
+
+type FoodItem @table {
+  name: String!
+  glycemicIndex: Int!
+  carbohydratePerServing: Float!
+  servingSizeDescription: String!
+  category: String
+  notes: String
+}
+
+type Meal @table {
+  user: User!
+  mealDate: Date!
+  mealTime: String!
+  createdAt: Timestamp!
+  notes: String
+}
+
+type MealEntry @table {
+  meal: Meal!
+  foodItem: FoodItem!
+  quantity: String!
+  notes: String
+}
+
+type MealPlan @table {
+  user: User!
+  name: String!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+  description: String
+}
+
+type MealPlanItem @table {
+  mealPlan: MealPlan!
+  foodItem: FoodItem!
+  dayOfWeek: String!
+  mealType: String!
+  quantity: String!
+  notes: String
+}

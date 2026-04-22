@@ -1,0 +1,77 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title style="font-weight: 700;">MEAL LOG</ion-title>
+  </ion-toolbar>
+
+  <div style="background-color: #c8d69b; padding: 15px; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;">
+    <ion-row class="ion-align-items-center">
+      <ion-col>
+        <h3 style="margin: 0; color: #343b1b; font-weight: 800;">Today's Record</h3>
+        <p style="margin: 0; color: #343b1b; opacity: 0.8; font-size: 0.9rem;">{{ today | date:'fullDate' }}</p>
+      </ion-col>
+      <ion-col size="auto">
+        <ion-icon name="calendar" style="font-size: 2rem; color: #343b1b;"></ion-icon>
+      </ion-col>
+    </ion-row>
+  </div>
+</ion-header>
+
+<ion-content>
+  <ion-searchbar placeholder="Search meals..." mode="ios" class="ion-margin-top"></ion-searchbar>
+
+  <ion-list lines="none" style="background: transparent;">
+    <div *ngIf="meals$ | async as meals; else loading">
+      
+      <div *ngIf="meals.length === 0" class="ion-text-center ion-padding">
+        <ion-icon name="restaurant-outline" style="font-size: 4rem; color: #c8d69b;"></ion-icon>
+        <h4 style="color: #343b1b;">No meals found</h4>
+        <p>Start scanning your plate to see your history!</p>
+      </div>
+
+      <ion-item-sliding *ngFor="let meal of meals">
+        <ion-item class="meal-card ion-margin-bottom" style="--background: #fff; border-radius: 15px; margin: 0 10px 10px 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+          <ion-thumbnail slot="start" style="--border-radius: 10px; width: 60px; height: 60px;">
+            <img [src]="meal?.imageUrl || 'assets/placeholder-food.png'" />
+          </ion-thumbnail>
+          
+          <ion-label>
+            <h2 style="font-weight: 700; color: #343b1b; font-size: 1.1rem;">Full Plate Analysis</h2>
+            <p style="color: #3971b8; font-weight: 500; margin-bottom: 4px;">
+              <ion-icon name="time-outline" style="vertical-align: middle;"></ion-icon>
+              {{ meal?.timestamp?.seconds ? (meal.timestamp.toDate() | date:'hh:mm a') : 'Recent' }} • {{ meal?.totalWeight }}g
+            </p>
+            
+            <div *ngFor="let item of meal.items" style="font-size: 0.85rem; color: #666;">
+              <span [style.color]="item.status === 'TOO MUCH' ? '#eb445a' : '#2dd36f'">●</span>
+              {{ item.label | titlecase }}: {{ item.weight }}g
+            </div>
+          </ion-label>
+
+          <ion-badge 
+            slot="end" 
+            [style.--background]="(meal?.totalGL || 0) > 20 ? '#eb445a' : '#c8d69b'"
+            [style.color]="(meal?.totalGL || 0) > 20 ? '#fff' : '#343b1b'"
+            style="padding: 8px 12px; border-radius: 8px;">
+            {{ (meal?.totalGL || 0) | number:'1.0-1' }} GL
+          </ion-badge>
+        </ion-item>
+
+        <ion-item-options side="end">
+          <ion-item-option color="danger" (click)="deleteMeal(meal?.id)">
+            <ion-icon slot="icon-only" name="trash"></ion-icon>
+          </ion-item-option>
+        </ion-item-options>
+      </ion-item-sliding>
+    </div>
+  </ion-list>
+
+  <ng-template #loading>
+    <div class="ion-text-center ion-padding">
+      <ion-spinner color="primary"></ion-spinner>
+      <p>Retrieving your logs...</p>
+    </div>
+  </ng-template>
+</ion-content>
