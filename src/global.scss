@@ -78,3 +78,18 @@ ion-content {
   --overflow: auto !important;
   height: 100%;
 }
+
+/* Add this at the very bottom of global.scss */
+
+// This allows the camera to shine through the entire Ionic framework stack
+html, body, ion-app, ion-router-outlet, .ion-page {
+  background-color: transparent !important;
+  --background: transparent !important;
+}
+
+// Global rule to ensure buttons always take priority over the camera layer
+ion-button {
+  position: relative;
+  z-index: 9999;
+  pointer-events: auto !important;
+}

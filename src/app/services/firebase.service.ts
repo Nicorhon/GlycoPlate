@@ -1,81 +1,86 @@
 import { Injectable, inject } from '@angular/core';
 import { 
-  Firestore, collection, collectionData, query, 
-  where, orderBy, addDoc, serverTimestamp, doc, deleteDoc 
-} from '@angular/fire/firestore';
-import { Database, ref, objectVal } from '@angular/fire/database';
+  Database, ref, push, set, query, 
+  orderByChild, equalTo, listVal, remove, get, objectVal 
+} from '@angular/fire/database';
 import { Auth, user } from '@angular/fire/auth';
-import { Observable, switchMap, of } from 'rxjs';
-import { MealData } from '../models/meal.model'; 
+import { Observable, switchMap, map } from 'rxjs';
+import { MealData } from '../models/meal.model';
+import { filter } from 'rxjs/operators'; // Add this import
 
 @Injectable({
   providedIn: 'root'
 })
 export class FirebaseService {
-  private firestore: Firestore = inject(Firestore);
   private database: Database = inject(Database);
   private auth: Auth = inject(Auth);
   
-  // Observable for the current authenticated user
+  // Observable of the current authentication state
   user$ = user(this.auth);
 
-  /**
-   * Retrieves live weight data from the IoT Smart Plate.
-   * @param plateId The unique ID of the plate (e.g., 'plate_01')
-   */
-  getLivePlateData(plateId: string): Observable<any> {
-    const plateRef = ref(this.database, `plates/${plateId}`);
+  /** Retrieves live weight data from IoT scales */
+  getLivePlateData(path: string): Observable<any> {
+    const plateRef = ref(this.database, path); 
     return objectVal(plateRef); 
   }
 
-  /**
-   * Adds a completed meal to the Firestore database.
-   * This now accepts the full MealData structure including the 'items' array.
+  /** * Fetches nutrition data from the 'foods' node in RTDB 
+   * KEPT AS REQUESTED
    */
-  async addMeal(meal: MealData) {
-    const currentUser = this.auth.currentUser;
-    const uid = currentUser ? currentUser.uid : 'guest_user';
-
-    const mealsRef = collection(this.firestore, 'meals');
-    
-    // We strip the 'id' if it exists to let Firestore generate a new one
-    const { id, ...mealData } = meal;
-
-    return addDoc(mealsRef, {
-      ...mealData,
-      userId: uid,
-      timestamp: serverTimestamp() // Overrides local time with server time for accuracy
-    });
+  async getFoodData(foodName: string): Promise<any> {
+    try {
+      const foodRef = ref(this.database, `foods/${foodName.toLowerCase()}`);
+      const snapshot = await get(foodRef);
+      return snapshot.exists() ? snapshot.val() : null;
+    } catch (error) {
+      console.error("Error fetching nutrition:", error);
+      return null;
+    }
   }
 
-  /**
-   * Retrieves all historical meals for the logged-in user.
-   * Useful for the History page to show the 3-portion breakdown.
-   */
-  getRecentMeals(): Observable<MealData[]> {
-    return this.user$.pipe(
-      switchMap(u => {
-        if (!u) return of([]);
-        
-        const mealsRef = collection(this.firestore, 'meals');
-        const q = query(
-          mealsRef, 
-          where('userId', '==', u.uid), 
-          orderBy('timestamp', 'desc')
-        );
-        
-        // idField: 'id' maps the Firestore document ID to the 'id' property in your model
-        return collectionData(q, { idField: 'id' }) as Observable<MealData[]>;
-      })
-    );
-  }
+  /** Adds meal to RTDB with Guest Fallback */
+// Replace your addMeal and getRecentMeals with these:
 
-  /**
-   * Deletes a specific meal record from history.
-   * @param mealId The Firestore document ID
-   */
+async addMeal(meal: MealData) {
+  // Use the actual anonymous UID provided by Firebase
+  const uid = this.auth.currentUser?.uid;
+  if (!uid) throw new Error("No user found");
+
+  const mealsRef = ref(this.database, 'meals');
+  const newMealRef = push(mealsRef);
+
+  const finalMeal = {
+    ...meal,
+    id: newMealRef.key,
+    userId: uid // Saves to the specific anonymous user
+  };
+
+  return set(newMealRef, finalMeal);
+}
+
+getRecentMeals(): Observable<MealData[]> {
+  const mealsRef = ref(this.database, 'meals');
+
+  return this.user$.pipe(
+    // filter(u => !!u) ensures we don't query until the anonymous login finishes
+    filter(u => !!u),
+    switchMap(u => {
+      const mealQuery = query(
+        mealsRef, 
+        orderByChild('userId'), 
+        equalTo(u!.uid) // Use the real UID
+      );
+      return listVal(mealQuery, { keyField: 'id' }) as Observable<MealData[]>;
+    }),
+    map(meals => {
+      if (!meals) return [];
+      return meals.sort((a, b) => b.timestamp - a.timestamp);
+    })
+  );
+}
+  /** Removes a meal record from the database */
   async deleteMeal(mealId: string) {
-    const mealDocRef = doc(this.firestore, `meals/${mealId}`);
-    return deleteDoc(mealDocRef);
+    const mealRef = ref(this.database, `meals/${mealId}`);
+    return remove(mealRef);
   }
 }

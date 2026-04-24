@@ -1,11 +1,12 @@
-import { Component, inject, OnInit, OnDestroy, Renderer2 } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, EnvironmentInjector, runInInjectionContext } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { 
   IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, 
-  IonContent, IonIcon, IonChip, IonLabel, IonButton, IonBadge 
+  IonContent, IonIcon, IonChip, IonLabel, IonButton, IonBadge, 
+  IonSpinner, IonModal, IonList, IonItem 
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { camera, refreshOutline, checkmarkCircle, alertCircle } from 'ionicons/icons';
+import { camera, refreshOutline, checkmarkCircle, alertCircle, timeOutline, cloudUploadOutline } from 'ionicons/icons';
 import { CameraPreview, CameraPreviewOptions } from '@capacitor-community/camera-preview';
 import { Router } from '@angular/router';
 import * as mobilenet from '@tensorflow-models/mobilenet';
@@ -18,22 +19,28 @@ import { MealData, MealPortion } from '../../models/meal.model';
   templateUrl: './camera.page.html',
   styleUrls: ['./camera.page.scss'],
   standalone: true,
-  imports: [CommonModule, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonContent, IonIcon, IonChip, IonLabel, IonButton, IonBadge]
+  imports: [CommonModule, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonContent, IonIcon, IonChip, IonLabel, IonButton, IonBadge, IonSpinner, IonModal, IonList, IonItem]
 })
 export class CameraPage implements OnInit, OnDestroy {
   private firebaseService = inject(FirebaseService);
   private router = inject(Router);
+  private injector = inject(EnvironmentInjector);
 
-  photo: string | undefined = undefined;
-  isCameraActive = false;
-  model: any;
+  public photo: string | undefined = undefined;
+  public isCameraActive = false;
+  private model: any;
 
-  p1Weight = 0; p2Weight = 0; p3Weight = 0;
-  portions: MealPortion[] = [];
-  readonly ALIGNMENT_THRESHOLD = 10;
+  public p1 = 0; public p2 = 0; public p3 = 0;
+  public portions: MealPortion[] = [];
+  
+  public stabilityTimer: any = null;
+  public isProcessing = false;
+  public countdown = 10;
+  public showHighGLModal = false;
+  public showSuccessModal = false;
 
   constructor() {
-    addIcons({ camera, refreshOutline, checkmarkCircle, alertCircle });
+    addIcons({ camera, refreshOutline, checkmarkCircle, alertCircle, timeOutline, cloudUploadOutline });
     this.listenToIoT();
   }
 
@@ -43,6 +50,7 @@ export class CameraPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.resetStability();
     CameraPreview.stop();
   }
 
@@ -55,28 +63,47 @@ export class CameraPage implements OnInit, OnDestroy {
     const options: CameraPreviewOptions = {
       parent: 'camera-parent',
       position: 'rear',
-      toBack: false,
+      toBack: true,
       width: window.innerWidth,
-      height: 380, // Match SCSS height
+      height: 380,
     };
     await CameraPreview.start(options);
     this.isCameraActive = true;
   }
 
   listenToIoT() {
-    this.firebaseService.getLivePlateData('plate_01').subscribe(data => {
+    // Listens to your 'scales' node in RTDB
+    this.firebaseService.getLivePlateData('scales').subscribe(data => {
       if (data) {
-        this.p1Weight = data.p1 || 0;
-        this.p2Weight = data.p2 || 0;
-        this.p3Weight = data.p3 || 0;
+        this.p1 = Number(data.scale1) || 0;
+        this.p2 = Number(data.scale2) || 0;
+        this.p3 = Number(data.scale3) || 0;
+        if (this.isAligned && !this.photo && !this.isProcessing) this.handleAutoCapture();
+        else if (!this.isAligned) this.resetStability();
       }
     });
   }
 
   get isAligned(): boolean {
-    return this.p1Weight > this.ALIGNMENT_THRESHOLD && 
-           this.p2Weight > this.ALIGNMENT_THRESHOLD && 
-           this.p3Weight > this.ALIGNMENT_THRESHOLD;
+    return this.p1 > 10 && this.p2 > 10 && this.p3 > 10;
+  }
+
+  private handleAutoCapture() {
+    if (this.stabilityTimer) return;
+    this.stabilityTimer = setInterval(async () => {
+      this.countdown--;
+      if (this.countdown <= 0) {
+        this.resetStability();
+        this.isProcessing = true;
+        await this.captureImage();
+      }
+    }, 1000);
+  }
+
+  private resetStability() {
+    if (this.stabilityTimer) clearInterval(this.stabilityTimer);
+    this.stabilityTimer = null;
+    this.countdown = 10;
   }
 
   async captureImage() {
@@ -84,54 +111,79 @@ export class CameraPage implements OnInit, OnDestroy {
     this.photo = `data:image/jpeg;base64,${result.value}`;
     this.isCameraActive = false;
     await CameraPreview.stop();
-    this.analyzePlate(this.photo);
+    await this.analyzePlate(this.photo);
   }
 
   async analyzePlate(base64: string) {
     const img = new Image();
     img.src = base64;
     img.onload = async () => {
-      const pred = await this.model.classify(img);
-      const mainFood = pred[0].className.split(',')[0].toLowerCase();
-      const labels = [mainFood, 'chicken', 'broccoli'];
-      const weights = [this.p1Weight, this.p2Weight, this.p3Weight];
-      
-      this.portions = labels.map((name, i) => this.calculateGL(name, weights[i]));
+      await runInInjectionContext(this.injector, async () => {
+        const pred = await this.model.classify(img);
+        const mainFood = pred[0].className.split(',')[0].toLowerCase();
+        const labels = ['Brocolli', 'Pasta', 'Chicken'];
+        const weights = [this.p1, this.p2, this.p3];
+        const tempPortions: MealPortion[] = [];
+
+        for (let i = 0; i < labels.length; i++) {
+          const nutrition = await this.firebaseService.getFoodData(labels[i]);
+          const gi = nutrition?.glycemicIndex ?? 50; 
+          const netCarbs = weights[i] * ((nutrition?.carbsPer100g ?? 15) / 100);
+          const gl = (gi * netCarbs) / 100;
+          tempPortions.push(this.formatPortion(labels[i], weights[i], gl));
+        }
+        
+        this.portions = tempPortions;
+        this.isProcessing = false;
+        if (this.canLog) this.showSuccessModal = true;
+        else this.showHighGLModal = true;
+      });
     };
   }
 
-  calculateGL(foodName: string, weight: number): MealPortion {
-    // Basic logic - can be expanded with NUTRITION_DB
-    const gl = (50 * (weight * 0.2)) / 100; 
-    let status = gl > 15 ? 'TOO MUCH' : 'NORMAL';
+  formatPortion(foodName: string, weight: number, gl: number): MealPortion {
+    const status = gl > 15 ? 'TOO MUCH' : 'NORMAL';
     return {
-      label: foodName,
-      weight: weight,
-      gl: gl,
-      status: status,
+      label: foodName, weight, gl, status,
       color: status === 'NORMAL' ? 'success' : 'danger',
-      advice: status === 'NORMAL' ? 'Safe portion.' : `Reduce ${foodName} weight.`
+      advice: status === 'NORMAL' ? 'Safe portion.' : `Reduce ${foodName} portion.`
     };
   }
 
-  get canLog() { return this.portions.every(p => p.status === 'NORMAL'); }
+  get canLog() { return this.portions.length > 0 && this.portions.every(p => p.status === 'NORMAL'); }
 
-  async confirmAndSave() {
-    const mealData: MealData = {
-      userId: '',
-      timestamp: Date.now(),
-      items: this.portions,
-      totalWeight: this.p1Weight + this.p2Weight + this.p3Weight,
-      totalGL: this.portions.reduce((sum, p) => sum + p.gl, 0),
-      imageUrl: this.photo
-    };
+ async confirmAndSave() {
+  // 1. Create data object
+  const mealData = {
+    timestamp: Date.now(),
+    items: this.portions,
+    totalWeight: this.p1 + this.p2 + this.p3,
+    totalGL: this.portions.reduce((sum, p) => sum + p.gl, 0),
+    imageUrl: this.photo || ''
+  };
+
+  try {
+    // 2. Clear state BEFORE navigating to prevent loops
+    this.showSuccessModal = false;
+    
+    // 3. Perform the save
     await this.firebaseService.addMeal(mealData);
-    this.router.navigate(['/home']);
+    
+    // 4. Navigate away
+    this.router.navigate(['/history']);
+  } catch (error) {
+    console.error("Save failed:", error);
+    alert("Could not save meal. Please try again.");
   }
+}
 
   restartScan() {
     this.photo = undefined;
     this.portions = [];
+    this.isProcessing = false;
+    this.showHighGLModal = false;
+    this.showSuccessModal = false;
+    this.resetStability();
     this.startLiveCamera();
   }
 }

@@ -9,9 +9,9 @@ export interface MealPortion {
 
 export interface MealData {
   id?: string;
-  userId: string;
-  timestamp: any;
-  items: MealPortion[];
+  userId?: string; // Add the '?' to make it optional
+  timestamp: number;
+  items: any[];
   totalWeight: number;
   totalGL: number;
   imageUrl?: string;

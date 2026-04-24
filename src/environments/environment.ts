@@ -5,13 +5,13 @@
 export const environment = {
   production: false,
   firebaseConfig: {
-    apiKey: "AIzaSyDMsMxvWDZlD0rPVcZXz4DmkaJ2h5a32TY",
-    authDomain: "glycoplate.firebaseapp.com",
-    projectId: "glycoplate",
-    storageBucket: "glycoplate.appspot.com",
-    messagingSenderId: "710811215555",
-    appId: "1:710811215555:web:ae649e0b1d471e33cd6476",
-    databaseURL: "https://glycoplate-default-rtdb.firebaseio.com/"
+    apiKey: "AIzaSyD4VutqPwfFLduBxIZq4CLblZ3mjhKyDvo",
+  authDomain: "glyco-plate.firebaseapp.com",
+  databaseURL: "https://glyco-plate-default-rtdb.firebaseio.com",
+  projectId: "glyco-plate",
+  storageBucket: "glyco-plate.firebasestorage.app",
+  messagingSenderId: "389522456261",
+  appId: "1:389522456261:web:2fbba18984e2515204baac"
   }
 };
 
