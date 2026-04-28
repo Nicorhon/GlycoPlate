@@ -1,6 +1,5 @@
-import { Component, inject, OnInit } from '@angular/core'; // Added OnInit
-import { Router } from '@angular/router';
-import { IonApp, IonRouterOutlet, IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel, IonFab, IonFabButton } from '@ionic/angular/standalone';
+import { Component } from '@angular/core';
+import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
   statsChartOutline, 
@@ -10,31 +9,19 @@ import {
   camera, 
   alertCircle 
 } from 'ionicons/icons';
-// 1. Import Auth and Anonymous Sign-in
-import { Auth, signInAnonymously } from '@angular/fire/auth';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [
     IonApp, 
-    IonRouterOutlet, 
-    IonTabs, 
-    IonTabBar, 
-    IonTabButton, 
-    IonIcon, 
-    IonLabel, 
-    IonFab, 
-    IonFabButton
+    IonRouterOutlet
   ],
   templateUrl: 'app.component.html',
 })
-export class AppComponent implements OnInit { // 2. Implement OnInit
-  private router = inject(Router);
-  // 3. Inject the Auth service
-  private auth = inject(Auth);
-
+export class AppComponent {
   constructor() {
+    // Icons are registered once here so they work everywhere in the app
     addIcons({ 
       statsChartOutline, 
       calendarOutline, 
@@ -43,20 +30,5 @@ export class AppComponent implements OnInit { // 2. Implement OnInit
       camera, 
       alertCircle 
     });
-  }
-
-  // 4. Trigger silent login on startup
-  async ngOnInit() {
-    try {
-      await signInAnonymously(this.auth);
-      console.log('Demo: Anonymous user signed in successfully.');
-    } catch (error) {
-      console.error('Auth failed for demo:', error);
-    }
-  }
-
-  goToCamera() {
-    console.log('Camera button clicked - navigating now...');
-    this.router.navigate(['/camera']);
   }
 }

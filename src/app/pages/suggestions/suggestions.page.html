@@ -1,0 +1,75 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar color="primary">
+    <ion-title style="font-weight: 800; letter-spacing: 1px;">SUGGESTIONS</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content style="--background: #fbfcee;">
+  <div class="ion-padding">
+    <ion-text color="primary">
+      <h2 style="font-weight: bold; margin-bottom: 5px;">
+        {{ userStatus === 'high-gl' ? 'Time for a GL Reset' : 'Balanced Suggestions' }}
+      </h2>
+    </ion-text>
+    <ion-note style="color: #343b1b;">Based on your recent Smart Plate records</ion-note>
+  </div>
+
+  <ion-card *ngFor="let meal of suggestedMeals" (click)="openRecipe(meal)" mode="ios" 
+            style="--background: #fff; border-radius: 16px; margin-bottom: 20px;">
+    <div style="height: 150px; background: #c8d69b; position: relative;">
+      <div style="position: absolute; bottom: 10px; left: 10px;">
+        <ion-badge color="secondary">{{ meal.type }}</ion-badge>
+      </div>
+    </div>
+    
+    <ion-card-header>
+      <ion-row class="ion-align-items-center">
+        <ion-col>
+          <ion-card-title style="color: #343b1b; font-weight: bold;">{{ meal.name }}</ion-card-title>
+          <ion-card-subtitle>Estimated GL: {{ meal.gl }}</ion-card-subtitle>
+        </ion-col>
+        <ion-col size="auto">
+          <ion-button fill="clear">
+            <ion-icon name="restaurant-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </ion-col>
+      </ion-row>
+    </ion-card-header>
+  </ion-card>
+
+  <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar color="primary">
+          <ion-title>Recipe Details</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="isModalOpen = false">
+              <ion-icon name="close-outline"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      
+      <ion-content class="ion-padding">
+        <div class="ion-text-center ion-margin-bottom">
+          <h1 style="color: #343b1b; font-weight: 800;">{{ selectedMeal?.name }}</h1>
+          <ion-chip color="secondary">
+            <ion-icon name="time-outline"></ion-icon>
+            <ion-label>{{ selectedMeal?.prep }}</ion-label>
+          </ion-chip>
+        </div>
+
+        <h3 style="color: #343b1b; font-weight: bold; border-left: 4px solid #c8d69b; padding-left: 10px;">Ingredients</h3>
+        <ion-list lines="none">
+          <ion-item *ngFor="let ing of selectedMeal?.ingredients">
+            <ion-icon name="leaf-outline" slot="start" color="primary"></ion-icon>
+            <ion-label>{{ ing }}</ion-label>
+          </ion-item>
+        </ion-list>
+
+        <h3 style="color: #343b1b; font-weight: bold; border-left: 4px solid #343b1b; padding-left: 10px;">Steps</h3>
+        <p style="line-height: 1.6; color: #555;">{{ selectedMeal?.instructions }}</p>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content>

@@ -1,0 +1,117 @@
+// suggestions.page.scss
+
+// 1. Root container background to match your app palette
+ion-content {
+  --background: #fbfcee; // Your signature off-white background
+}
+
+// 2. Custom Typography and spacing for the header section
+h2 {
+  color: #343b1b;
+  font-size: 1.6rem;
+  padding-bottom: 0;
+}
+
+ion-note {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+// 3. Smart Meal Cards
+ion-card {
+  margin: 16px;
+  box-shadow: 0 8px 24px rgba(52, 59, 27, 0.08) !important;
+  border: 1px solid rgba(200, 214, 155, 0.3);
+  transition: transform 0.2s ease-in-out;
+
+  &:active {
+    transform: scale(0.98); // Haptic feedback feel on click
+  }
+
+  // Placeholder for meal images (if you don't have local assets yet)
+  .image-placeholder {
+    height: 150px;
+    background: linear-gradient(135deg, #c8d69b 0%, #a8b67b 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    ion-icon {
+      font-size: 4rem;
+      color: #343b1b;
+      opacity: 0.2;
+    }
+  }
+}
+
+ion-card-title {
+  color: #343b1b !important;
+  font-size: 1.2rem !important;
+  letter-spacing: -0.5px;
+}
+
+ion-card-subtitle {
+  color: #6d755d !important;
+  font-weight: 600;
+}
+
+// 4. Badge and Chip styling
+ion-badge {
+  --padding-start: 12px;
+  --padding-end: 12px;
+  --padding-top: 6px;
+  --padding-bottom: 6px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  border-radius: 8px;
+}
+
+ion-chip {
+  --background: #c8d69b;
+  --color: #343b1b;
+  font-weight: bold;
+}
+
+// 5. Recipe Modal Styling
+ion-modal {
+  --height: 90%;
+  --border-radius: 20px 20px 0 0;
+  
+  ion-toolbar {
+    --background: #343b1b;
+    --color: white;
+  }
+
+  h3 {
+    margin-top: 25px;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  ion-item {
+    --background: transparent;
+    --padding-start: 0;
+    margin-bottom: 5px;
+    
+    ion-label {
+      color: #4a4a4a;
+      font-size: 1rem;
+    }
+  }
+
+  p {
+    color: #555;
+    font-size: 1.05rem;
+    margin-bottom: 30px;
+  }
+}
+
+// 6. Utility for text colors
+.text-primary {
+  color: #343b1b;
+}
+
+.text-secondary {
+  color: #c8d69b;
+}

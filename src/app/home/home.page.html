@@ -1,125 +1,88 @@
-<ion-header [translucent]="true" class="ion-no-border">
+<ion-header class="ion-no-border">
   <ion-toolbar color="primary">
-    <ion-buttons slot="start">
-      <ion-menu-button></ion-menu-button>
-    </ion-buttons>
-    <ion-title>GlycoPlate Dashboard</ion-title>
+    <ion-title style="font-weight: 800; letter-spacing: 1px;">GLYCOPLATE</ion-title>
     <ion-buttons slot="end">
-      <ion-button routerLink="/profile">
-        <ion-icon name="person-circle-outline" size="large"></ion-icon>
-      </ion-button>
+      <ion-badge [color]="currentWeight > 0 ? 'secondary' : 'medium'">
+        {{ currentWeight > 0 ? 'Live' : 'Standby' }}
+      </ion-badge>
     </ion-buttons>
   </ion-toolbar>
-
-  <ion-toolbar>
-    <ion-segment [value]="timeframe" (ionChange)="filterChange($event)" mode="md">
-      <ion-segment-button value="daily">
-        <ion-label>Daily</ion-label>
-      </ion-segment-button>
-      <ion-segment-button value="weekly">
-        <ion-label>Weekly</ion-label>
-      </ion-segment-button>
-      <ion-segment-button value="monthly">
-        <ion-label>Monthly</ion-label>
-      </ion-segment-button>
+  
+  <ion-toolbar color="primary">
+    <ion-segment value="daily" (ionChange)="filterChange($event)" mode="md" style="--background: rgba(255,255,255,0.1);">
+      <ion-segment-button value="daily"><ion-label>Daily</ion-label></ion-segment-button>
+      <ion-segment-button value="weekly"><ion-label>Weekly</ion-label></ion-segment-button>
+      <ion-segment-button value="monthly"><ion-label>Monthly</ion-label></ion-segment-button>
     </ion-segment>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding gray-bg">
+<ion-content>
+  <div class="ion-padding-horizontal ion-padding-top">
+    <ion-note color="tertiary" style="display: flex; align-items: center;">
+      <ion-icon name="radio-outline" style="margin-right: 5px;"></ion-icon>
+      Connected to Smart Plate #01
+    </ion-note>
+  </div>
 
-  <ion-card *ngIf="weightStatus === 'too-much'" class="warning-card animate__animated animate__headShake">
-    <ion-item lines="none" color="warning">
-      <ion-icon name="scale-outline" slot="start"></ion-icon>
+  <ion-card *ngIf="weightStatus === 'too-much'" mode="ios" style="--background: #f6e6a5; border: 1px solid #343b1b;">
+    <ion-item lines="none" style="--background: transparent;">
+      <ion-icon name="warning" slot="start" color="tertiary"></ion-icon>
       <ion-label class="ion-text-wrap">
-        <h2 style="font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Portion Overload</h2>
-        <p>Current: <strong>{{ currentWeight }}g</strong>. Remove <strong>{{ weightDiff }}g</strong> to hit your target.</p>
+        <h2 style="font-weight: bold; color: #343b1b;">Portion Limit Exceeded</h2>
+        <p style="color: #343b1b;">
+          Current: <strong>{{ currentWeight }}g</strong>. 
+          Please remove <strong>{{ weightDiff }}g</strong> to maintain low GI stability.
+        </p>
       </ion-label>
     </ion-item>
   </ion-card>
 
-  <ion-card mode="ios" class="main-stats-card">
+  <ion-card mode="ios" style="--background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+    <ion-card-header>
+      <ion-row class="ion-align-items-center">
+        <ion-col>
+          <ion-card-subtitle color="primary">DAILY GL INTAKE</ion-card-subtitle>
+          <ion-card-title style="font-size: 1.8rem; font-weight: bold; color: #343b1b;">
+            {{ dailyGLIntake }}<span style="font-size: 0.9rem; font-weight: normal;"> / {{ maxDailyLimit }} GL</span>
+          </ion-card-title>
+        </ion-col>
+        <ion-col size="auto">
+          <ion-icon name="fast-food" color="secondary" style="font-size: 2.5rem;"></ion-icon>
+        </ion-col>
+      </ion-row>
+    </ion-card-header>
+    
     <ion-card-content>
-      <div class="stats-container">
-        <div class="circular-progress">
-          <div class="progress-text">
-            <h1>{{ (dailyIntake / maxDailyLimit * 100).toFixed(0) }}%</h1>
-            <p>of daily limit</p>
-          </div>
-        </div>
-        
-        <div class="stats-details">
-          <ion-text color="medium"><h5>Total Intake</h5></ion-text>
-          <h2>{{ dailyIntake }} <small>/ {{ maxDailyLimit }}g</small></h2>
-          <ion-badge [color]="dailyIntake >= maxDailyLimit ? 'danger' : 'success'">
-            {{ dailyIntake >= maxDailyLimit ? 'Limit Exceeded' : 'On Track' }}
-          </ion-badge>
-        </div>
-      </div>
-      
       <ion-progress-bar 
-        class="main-progress"
-        [value]="dailyIntake / maxDailyLimit" 
-        [color]="dailyIntake >= maxDailyLimit ? 'danger' : 'success'">
+        [value]="progress" 
+        style="height: 12px; border-radius: 6px; --progress-background: #c8d69b; --buffer-background: #fbfcee;">
       </ion-progress-bar>
+      
+      <div class="ion-padding-top" *ngIf="dailyGLIntake >= maxDailyLimit">
+        <ion-chip color="danger" outline="true">
+          <ion-icon name="alert-circle"></ion-icon>
+          <ion-label>Daily GL limit reached</ion-label>
+        </ion-chip>
+      </div>
     </ion-card-content>
   </ion-card>
 
-  <ion-row>
-    <ion-col size="6">
-      <ion-card class="mini-card" mode="ios">
-        <ion-card-content>
-          <ion-icon name="leaf-outline" color="success"></ion-icon>
-          <p>Carbs</p>
-          <h3>45g</h3>
-        </ion-card-content>
-      </ion-card>
-    </ion-col>
-    <ion-col size="6">
-      <ion-card class="mini-card" mode="ios">
-        <ion-card-content>
-          <ion-icon name="flame-outline" color="danger"></ion-icon>
-          <p>Protein</p>
-          <h3>32g</h3>
-        </ion-card-content>
-      </ion-card>
-    </ion-col>
-  </ion-row>
-
-  <ion-card mode="ios" class="chart-card">
+  <ion-card mode="ios" *ngIf="currentWeight > 0">
     <ion-card-header>
-      <ion-card-title>Nutritional Trend</ion-card-title>
+      <ion-card-title color="tertiary" style="font-size: 1rem;">Live Plate Load</ion-card-title>
     </ion-card-header>
-    <div class="chart-placeholder">
-       <canvas id="trendChart"></canvas>
-    </div>
+    <ion-card-content>
+       <p style="color: #343b1b;">The sensors are currently detecting <strong>{{ currentWeight }}g</strong> on the plate. Proceed to the camera tab to analyze this portion.</p>
+    </ion-card-content>
   </ion-card>
 
-  <ion-list-header>
-    <ion-label>Quick Actions</ion-label>
-  </ion-list-header>
-  
-  <ion-grid>
-    <ion-row>
-      <ion-col size="4" class="ion-text-center">
-        <ion-fab-button color="light" size="small" routerLink="/history">
-          <ion-icon name="add-outline"></ion-icon>
-        </ion-fab-button>
-        <p class="small-label">Log Food</p>
-      </ion-col>
-      <ion-col size="4" class="ion-text-center">
-        <ion-fab-button color="light" size="small" routerLink="/camera">
-          <ion-icon name="camera-outline"></ion-icon>
-        </ion-fab-button>
-        <p class="small-label">Scan Plate</p>
-      </ion-col>
-      <ion-col size="4" class="ion-text-center">
-        <ion-fab-button color="light" size="small">
-          <ion-icon name="water-outline"></ion-icon>
-        </ion-fab-button>
-        <p class="small-label">Hydration</p>
-      </ion-col>
-    </ion-row>
-  </ion-grid>
+  <ion-item lines="none" class="ion-margin" style="--background: #c8d69b; border-radius: 12px;">
+    <ion-icon name="bulb" slot="start" color="primary"></ion-icon>
+    <ion-label class="ion-text-wrap">
+      <h3 style="font-weight: bold;">Daily Health Tip</h3>
+      <p style="color: #343b1b;">Fiber helps slow sugar absorption. Your Broccoli readings are looking good today!</p>
+    </ion-label>
+  </ion-item>
 
 </ion-content>

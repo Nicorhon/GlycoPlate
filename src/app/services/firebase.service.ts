@@ -3,10 +3,14 @@ import {
   Database, ref, push, set, query, 
   orderByChild, equalTo, listVal, remove, get, objectVal 
 } from '@angular/fire/database';
-import { Auth, user } from '@angular/fire/auth';
-import { Observable, switchMap, map } from 'rxjs';
+import { 
+  Auth, user, createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, signOut 
+} from '@angular/fire/auth';
+import { Observable, switchMap, map, of } from 'rxjs';
 import { MealData } from '../models/meal.model';
-import { filter } from 'rxjs/operators'; // Add this import
+import { filter } from 'rxjs/operators';
+import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root'
@@ -14,19 +18,46 @@ import { filter } from 'rxjs/operators'; // Add this import
 export class FirebaseService {
   private database: Database = inject(Database);
   private auth: Auth = inject(Auth);
+  private router = inject(Router);
   
-  // Observable of the current authentication state
   user$ = user(this.auth);
 
-  /** Retrieves live weight data from IoT scales */
-  getLivePlateData(path: string): Observable<any> {
-    const plateRef = ref(this.database, path); 
-    return objectVal(plateRef); 
+  async signUp(email: string, pass: string) {
+    const credential = await createUserWithEmailAndPassword(this.auth, email, pass);
+    const uid = credential.user.uid;
+
+    return set(ref(this.database, `users/${uid}`), {
+      profile: {
+        email: email,
+        createdAt: new Date().toISOString()
+      },
+      scale_data: {
+        scale1: 0,
+        scale2: 0,
+        scale3: 0
+      }
+    });
   }
 
-  /** * Fetches nutrition data from the 'foods' node in RTDB 
-   * KEPT AS REQUESTED
-   */
+  async login(email: string, pass: string) {
+    return signInWithEmailAndPassword(this.auth, email, pass);
+  }
+
+  async logout() {
+    await signOut(this.auth);
+    this.router.navigate(['/login']);
+  }
+
+  getLivePlateData(): Observable<any> {
+    return this.user$.pipe(
+      filter(u => !!u),
+      switchMap(u => {
+        const plateRef = ref(this.database, `users/${u?.uid}/scale_data`); 
+        return objectVal(plateRef);
+      })
+    );
+  }
+
   async getFoodData(foodName: string): Promise<any> {
     try {
       const foodRef = ref(this.database, `foods/${foodName.toLowerCase()}`);
@@ -38,49 +69,70 @@ export class FirebaseService {
     }
   }
 
-  /** Adds meal to RTDB with Guest Fallback */
-// Replace your addMeal and getRecentMeals with these:
+  /** * UPDATED: Cleans the meal object to prevent 'Maximum call stack' errors
+   */
+ async addMeal(meal: MealData) {
+  // 1. Get current UID and force it to a string for the path
+  const user = this.auth.currentUser;
+  const uid = user?.uid;
 
-async addMeal(meal: MealData) {
-  // Use the actual anonymous UID provided by Firebase
-  const uid = this.auth.currentUser?.uid;
-  if (!uid) throw new Error("No user found");
+  if (!uid) {
+    console.error("Save failed: No authenticated user");
+    throw new Error("No authenticated user found");
+  }
 
-  const mealsRef = ref(this.database, 'meals');
-  const newMealRef = push(mealsRef);
+  try {
+    // 2. Reference the exact path allowed by your rules: users/$uid/history
+    const userHistoryRef = ref(this.database, `users/${uid}/history`);
+    const newMealRef = push(userHistoryRef);
 
-  const finalMeal = {
-    ...meal,
-    id: newMealRef.key,
-    userId: uid // Saves to the specific anonymous user
-  };
+    // 3. THE FIX: Double-clean the data. 
+    // JSON.stringify removes hidden circular references from TensorFlow/Angular
+    const cleanedMeal = JSON.parse(JSON.stringify(meal));
 
-  return set(newMealRef, finalMeal);
+    // 4. Attach metadata and ensure all numbers are formatted correctly
+    const finalMeal = {
+      ...cleanedMeal,
+      id: newMealRef.key,
+      userId: uid,
+      // Ensure the timestamp is fresh if not provided
+      timestamp: cleanedMeal.timestamp || Date.now()
+    };
+
+    // 5. Save to the user-specific history node
+    return await set(newMealRef, finalMeal);
+  } catch (error) {
+    console.error("Firebase Set Error:", error);
+    throw error;
+  }
 }
 
-getRecentMeals(): Observable<MealData[]> {
-  const mealsRef = ref(this.database, 'meals');
+  getRecentMeals(): Observable<MealData[]> {
+    return this.user$.pipe(
+      filter(u => !!u),
+      switchMap(u => {
+        if (!u) return of([]);
+        const userHistoryRef = ref(this.database, `users/${u.uid}/history`);
+        return listVal(userHistoryRef, { keyField: 'id' }) as Observable<MealData[]>;
+      }),
+      map(meals => (meals || []).sort((a, b) => b.timestamp - a.timestamp))
+    );
+  }
 
+  async deleteMeal(mealId: string) {
+    const uid = this.auth.currentUser?.uid;
+    const mealRef = ref(this.database, `users/${uid}/history/${mealId}`);
+    return remove(mealRef);
+  }
+
+  // Add this to your FirebaseService class
+getUserProfileData(): Observable<any> {
   return this.user$.pipe(
-    // filter(u => !!u) ensures we don't query until the anonymous login finishes
     filter(u => !!u),
     switchMap(u => {
-      const mealQuery = query(
-        mealsRef, 
-        orderByChild('userId'), 
-        equalTo(u!.uid) // Use the real UID
-      );
-      return listVal(mealQuery, { keyField: 'id' }) as Observable<MealData[]>;
-    }),
-    map(meals => {
-      if (!meals) return [];
-      return meals.sort((a, b) => b.timestamp - a.timestamp);
+      const profileRef = ref(this.database, `users/${u?.uid}/profile`);
+      return objectVal(profileRef);
     })
   );
 }
-  /** Removes a meal record from the database */
-  async deleteMeal(mealId: string) {
-    const mealRef = ref(this.database, `meals/${mealId}`);
-    return remove(mealRef);
-  }
 }

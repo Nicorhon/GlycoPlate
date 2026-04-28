@@ -1,35 +1,3 @@
 <ion-app>
-  <ion-tabs>
-    <ion-router-outlet></ion-router-outlet>
-
-    <ion-tab-bar slot="bottom">
-      <ion-tab-button tab="home" routerLink="/home">
-        <ion-icon name="stats-chart-outline"></ion-icon>
-        <ion-label>Dashboard</ion-label>
-      </ion-tab-button>
-
-      <ion-tab-button tab="history" routerLink="/history">
-        <ion-icon name="calendar-outline"></ion-icon>
-        <ion-label>History</ion-label>
-      </ion-tab-button>
-
-      <div style="width: 70px;"></div>
-
-      <ion-tab-button tab="suggestions">
-        <ion-icon name="bulb-outline"></ion-icon>
-        <ion-label>Suggestions</ion-label>
-      </ion-tab-button>
-
-      <ion-tab-button tab="profile" routerLink="/profile">
-        <ion-icon name="person-outline"></ion-icon>
-        <ion-label>Profile</ion-label>
-      </ion-tab-button>
-    </ion-tab-bar>
-
-   <ion-fab vertical="bottom" horizontal="center" slot="fixed">
-  <ion-fab-button (click)="goToCamera()" color="primary" style="margin-bottom: 5px;">
-    <ion-icon name="camera"></ion-icon>
-  </ion-fab-button>
-</ion-fab>
-  </ion-tabs>
+  <ion-router-outlet></ion-router-outlet>
 </ion-app>

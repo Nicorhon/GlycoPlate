@@ -1,0 +1,42 @@
+<ion-content class="ion-padding ion-text-center auth-background">
+  <div class="header-section">
+    <img src="assets/icon/favicon.png" class="app-logo" alt="GlycoPlate Logo">
+    
+
+  </div>
+
+  <div class="form-container">
+    <ion-list lines="none" class="transparent-list">
+      <ion-item class="custom-input-item">
+        <ion-icon name="mail-outline" slot="start" color="primary"></ion-icon>
+        <ion-input 
+          label="Email" 
+          labelPlacement="floating" 
+          type="email" 
+          [(ngModel)]="email" 
+          placeholder="Enter your email">
+        </ion-input>
+      </ion-item>
+
+      <ion-item class="custom-input-item ion-margin-top">
+        <ion-icon name="lock-closed-outline" slot="start" color="primary"></ion-icon>
+        <ion-input 
+          label="Password" 
+          labelPlacement="floating" 
+          type="password" 
+          [(ngModel)]="password" 
+          placeholder="Enter your password">
+        </ion-input>
+      </ion-item>
+    </ion-list>
+
+    <ion-button expand="block" shape="round" (click)="handleAuth()" class="main-button ion-margin-top">
+      {{ isLogin ? 'Sign In' : 'Register' }}
+      <ion-icon slot="end" [name]="isLogin ? 'log-in-outline' : 'person-add-outline'"></ion-icon>
+    </ion-button>
+
+    <ion-button fill="clear" (click)="isLogin = !isLogin" color="tertiary" class="toggle-button">
+      {{ isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Log In' }}
+    </ion-button>
+  </div>
+</ion-content>

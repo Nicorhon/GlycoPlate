@@ -2,12 +2,14 @@
   <ion-toolbar color="primary">
     <ion-title style="font-weight: 800; letter-spacing: 1px;">GLYCOPLATE</ion-title>
     <ion-buttons slot="end">
-      <ion-badge color="secondary">Live</ion-badge>
+      <ion-badge [color]="currentWeight > 0 ? 'secondary' : 'medium'">
+        {{ currentWeight > 0 ? 'Live' : 'Standby' }}
+      </ion-badge>
     </ion-buttons>
   </ion-toolbar>
   
   <ion-toolbar color="primary">
-    <ion-segment value="daily" (ionChange)="filterChange($event)" mode="md" style="--background: rgba(255,255,255,0.1);">
+    <ion-segment [value]="currentFilter" (ionChange)="filterChange($event)" mode="md" style="--background: rgba(255,255,255,0.1);">
       <ion-segment-button value="daily"><ion-label>Daily</ion-label></ion-segment-button>
       <ion-segment-button value="weekly"><ion-label>Weekly</ion-label></ion-segment-button>
       <ion-segment-button value="monthly"><ion-label>Monthly</ion-label></ion-segment-button>
@@ -30,7 +32,7 @@
         <h2 style="font-weight: bold; color: #343b1b;">Portion Limit Exceeded</h2>
         <p style="color: #343b1b;">
           Current: <strong>{{ currentWeight }}g</strong>. 
-          Please remove <strong>{{ weightDiff }}g</strong> to maintain low GI stability.
+          Please remove <strong>{{ weightDiff }}g</strong> to maintain stability.
         </p>
       </ion-label>
     </ion-item>
@@ -40,9 +42,9 @@
     <ion-card-header>
       <ion-row class="ion-align-items-center">
         <ion-col>
-          <ion-card-subtitle color="primary">TOTAL CONSUMPTION</ion-card-subtitle>
+          <ion-card-subtitle color="primary">{{ currentFilter | uppercase }} GL INTAKE</ion-card-subtitle>
           <ion-card-title style="font-size: 1.8rem; font-weight: bold; color: #343b1b;">
-            {{ dailyIntake }}<span style="font-size: 0.9rem; font-weight: normal;"> / {{ maxDailyLimit }}g</span>
+            {{ displayGLTotal }}<span style="font-size: 0.9rem; font-weight: normal;"> / {{ dynamicLimit }} GL</span>
           </ion-card-title>
         </ion-col>
         <ion-col size="auto">
@@ -53,34 +55,33 @@
     
     <ion-card-content>
       <ion-progress-bar 
-        [value]="dailyIntake / maxDailyLimit" 
+        [value]="progress" 
         style="height: 12px; border-radius: 6px; --progress-background: #c8d69b; --buffer-background: #fbfcee;">
       </ion-progress-bar>
       
-      <div class="ion-padding-top" *ngIf="dailyIntake >= maxDailyLimit">
+      <div class="ion-padding-top" *ngIf="displayGLTotal >= dynamicLimit">
         <ion-chip color="danger" outline="true">
           <ion-icon name="alert-circle"></ion-icon>
-          <ion-label>Daily limit reached</ion-label>
+          <ion-label>{{ currentFilter | titlecase }} limit reached</ion-label>
         </ion-chip>
       </div>
     </ion-card-content>
   </ion-card>
 
-  <ion-card mode="ios">
+  <ion-card mode="ios" *ngIf="currentWeight > 0">
     <ion-card-header>
-      <ion-card-title color="tertiary">Nutritional Trend</ion-card-title>
+      <ion-card-title color="tertiary" style="font-size: 1rem;">Live Plate Load</ion-card-title>
     </ion-card-header>
-    <div style="height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fbfcee; border-radius: 12px; margin: 0 15px 15px;">
-      <ion-spinner name="crescent" color="primary"></ion-spinner>
-      <p style="color: #343b1b; margin-top: 10px; font-size: 0.8rem;">Analyzing glycemic fluctuations...</p>
-    </div>
+    <ion-card-content>
+       <p style="color: #343b1b;">The sensors are detecting <strong>{{ currentWeight }}g</strong>. Use the Camera to log this meal.</p>
+    </ion-card-content>
   </ion-card>
 
   <ion-item lines="none" class="ion-margin" style="--background: #c8d69b; border-radius: 12px;">
     <ion-icon name="bulb" slot="start" color="primary"></ion-icon>
     <ion-label class="ion-text-wrap">
       <h3 style="font-weight: bold;">Daily Health Tip</h3>
-      <p style="color: #343b1b;">Fiber helps slow sugar absorption. Try adding greens to this meal!</p>
+      <p style="color: #343b1b;">Check your history to see how your glycemic load fluctuates over the week!</p>
     </ion-label>
   </ion-item>
 
