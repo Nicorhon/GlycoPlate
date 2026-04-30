@@ -1,15 +1,17 @@
 import { Component, inject, OnInit, OnDestroy, EnvironmentInjector, runInInjectionContext } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms'; // Required for optional inputs
+import { FormsModule } from '@angular/forms';
 import { 
   IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, 
   IonContent, IonIcon, IonChip, IonLabel, IonButton, IonBadge, 
-  IonSpinner, IonModal, IonList, IonItem, IonTextarea, IonToggle, IonSelect, IonSelectOption 
+  IonSpinner, IonModal, IonList, IonItem, IonTextarea, IonToggle, 
+  IonSelect, IonSelectOption, IonInput 
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
   camera, refreshOutline, checkmarkCircle, alertCircle, 
-  timeOutline, cloudUploadOutline, closeOutline, leafOutline, restaurantOutline 
+  timeOutline, cloudUploadOutline, closeOutline, leafOutline, restaurantOutline,
+  helpCircleOutline 
 } from 'ionicons/icons';
 import { CameraPreview, CameraPreviewOptions } from '@capacitor-community/camera-preview';
 import { Router } from '@angular/router';
@@ -28,7 +30,7 @@ import { Subscription } from 'rxjs';
     CommonModule, FormsModule, IonHeader, IonToolbar, IonTitle, IonButtons, 
     IonBackButton, IonContent, IonIcon, IonChip, IonLabel, IonButton, 
     IonBadge, IonSpinner, IonModal, IonList, IonItem, IonTextarea, 
-    IonToggle, IonSelect, IonSelectOption
+    IonToggle, IonSelect, IonSelectOption, IonInput
   ]
 })
 export class CameraPage implements OnInit, OnDestroy {
@@ -60,7 +62,8 @@ export class CameraPage implements OnInit, OnDestroy {
   constructor() {
     addIcons({ 
       camera, refreshOutline, checkmarkCircle, alertCircle, 
-      timeOutline, cloudUploadOutline, closeOutline, leafOutline, restaurantOutline 
+      timeOutline, cloudUploadOutline, closeOutline, leafOutline, 
+      restaurantOutline, helpCircleOutline 
     });
   }
 
@@ -247,29 +250,56 @@ export class CameraPage implements OnInit, OnDestroy {
     };
   }
 
+  /**
+   * Recalculates nutritional data for unidentified items based on manual user input.
+   * Assumes a standard estimated carbohydrate density for unknown mixed dishes.
+   */
+ // Change the parameters to 'any' or 'string | number | null | undefined' 
+// to satisfy the template compiler
+updateUnidentifiedItem(index: number, newName: any, newGI: any) {
+  const item = this.portions[index];
+  
+  // Ensure we have a string for the name
+  const nameValue = newName ? String(newName) : (item?.label || 'Unknown');
+  
+  // Ensure we have a valid number for GI
+  const giValue = newGI !== null && newGI !== undefined ? Number(newGI) : 0;
+  
+  if (item && !isNaN(giValue)) {
+    const estimatedNetCarbs = item.weight * 0.15; 
+    const calculatedGL = (giValue * estimatedNetCarbs) / 100;
+    
+    this.portions[index] = this.formatPortion(
+      nameValue, 
+      item.weight, 
+      calculatedGL, 
+      'Manual entry.', 
+      giValue
+    );
+  }
+}
+
   get canLog() { 
     return this.portions.length > 0 && this.portions.every(p => p.status === 'NORMAL'); 
   }
 
   async confirmAndSave() {
     try {
-      // Process adjustments for hidden ingredients
       const finalItems = this.portions.map(p => {
         let finalGL = p.gl;
         let finalGI = p.gi;
         let finalLabel = p.label;
 
         if (this.hasExtraIngredient && this.extraIngredientType !== 'none') {
-          // Logic for adjustment (Example values for Filipino context)
           if (this.extraIngredientType === 'cheese') {
-             finalGL += 1.2; // Cheese adds fat/protein but slight carb impact
+             finalGL += 1.2;
              finalLabel += " (w/ Cheese)";
           } else if (this.extraIngredientType === 'sauce') {
-             finalGL += 3.5; // Sweet sauces (ketchup/gravy) spike GL
+             finalGL += 3.5;
              finalGI += 5;
              finalLabel += " (w/ Sauce)";
           } else if (this.extraIngredientType === 'sugar') {
-             finalGL += 6.0; // Heavy sugar coating
+             finalGL += 6.0;
              finalGI += 15;
              finalLabel += " (Glazed/Sweet)";
           }
@@ -291,7 +321,7 @@ export class CameraPage implements OnInit, OnDestroy {
         totalWeight: Number((this.p1 + this.p2 + this.p3).toFixed(2)),
         totalGL: Number(finalItems.reduce((sum, p) => sum + p.gl, 0).toFixed(2)),
         imageUrl: this.photo || '',
-        note: this.mealNote || '' // Save optional notes
+        note: this.mealNote || '' 
       };
 
       const pureMealData = JSON.parse(JSON.stringify(mealData));

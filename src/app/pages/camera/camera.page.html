@@ -33,7 +33,7 @@
       <div class="weight-status ion-text-center ion-padding-top">
         <div *ngIf="stabilityTimer" class="auto-timer">
           <ion-icon name="time-outline"></ion-icon>
-          Auto-capturing in {{ countdown }}s
+          Capturing in {{ countdown }}s
         </div>
 
         <div class="multi-weight-row" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 10px;">
@@ -45,59 +45,10 @@
         <ion-badge [color]="isAligned ? 'success' : 'danger'" class="weight-badge" style="font-size: 1.1em; padding: 8px 16px;">
           Total Weight: {{ (p1 + p2 + p3) }}g
         </ion-badge>
-        
-        <p class="instruction-text">
-          {{ isAligned ? 'Plate detected! Keep the regions clear.' : 'Align each section with a scale guide' }}
-        </p>
       </div>
     </div>
   </div>
 
-  <!-- HIGH GL WARNING MODAL -->
-  <ion-modal [isOpen]="showHighGLModal" (didDismiss)="showHighGLModal = false" class="center-modal">
-    <ng-template>
-      <ion-header class="ion-no-border">
-        <ion-toolbar color="danger">
-          <ion-title>High GL Warning</ion-title>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content class="no-scroll-content">
-        <div class="modal-wrapper">
-          <div class="ion-text-center ion-padding-top">
-            <ion-icon name="alert-circle" color="danger" style="font-size: 44px;"></ion-icon>
-            <h2 style="font-weight: 800; margin: 4px 0;">Portion Alert</h2>
-            <p style="margin-top: 0; font-size: 0.9em;">Some portions exceed safe glucose limits.</p>
-          </div>
-
-          <ion-list lines="full" class="compact-list">
-            <ion-item *ngFor="let p of portions">
-              <ion-icon slot="start" [name]="p.status === 'NORMAL' ? 'checkmark-circle' : 'alert-circle'" [color]="p.color" style="font-size: 18px;"></ion-icon>
-              <ion-label>
-                <h3 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                  <strong>{{ p.label | titlecase }}</strong>
-                  <ion-badge color="light" style="font-size: 0.75em; padding: 4px 8px;">{{ p.weight }}g</ion-badge>
-                </h3>
-                <div style="display: flex; gap: 8px; margin-bottom: 4px;">
-                  <ion-badge color="primary" mode="ios" style="font-size: 0.7em;">GI: {{ p.gi }}</ion-badge>
-                  <ion-badge [color]="p.color" mode="ios" style="font-size: 0.7em;">GL: {{ p.gl }}</ion-badge>
-                </div>
-                <p [class.danger-text]="p.status === 'TOO MUCH'" style="font-size: 0.8em; margin: 0;">{{ p.advice }}</p>
-              </ion-label>
-            </ion-item>
-          </ion-list>
-
-          <div class="ion-padding">
-            <ion-button (click)="restartScan()" expand="block" color="danger" class="main-btn">
-              <ion-icon slot="start" name="refresh-outline"></ion-icon>
-              ADJUST & RETAKE
-            </ion-button>
-          </div>
-        </div>
-      </ion-content>
-    </ng-template>
-  </ion-modal>
-
-  <!-- SUCCESS MODAL WITH OPTIONAL ADJUSTMENTS -->
   <ion-modal [isOpen]="showSuccessModal" (didDismiss)="showSuccessModal = false" class="center-modal">
     <ng-template>
       <ion-header class="ion-no-border">
@@ -111,64 +62,43 @@
           <div class="ion-text-center ion-padding-top">
             <ion-icon name="checkmark-circle" color="success" style="font-size: 44px;"></ion-icon>
             <h2 style="font-weight: 800; margin: 4px 0;">Perfect Portions</h2>
-            <p style="margin-top: 0; font-size: 0.9em;">Detected foods are within your safe range.</p>
+            <p style="margin-top: 0; font-size: 0.9em;">Detected items from 3 zones.</p>
           </div>
 
-          <!-- AI Results Summary -->
           <ion-list lines="full" class="compact-list">
-            <ion-item *ngFor="let p of portions" style="--background: transparent;">
-              <ion-icon slot="start" name="restaurant-outline" color="success" style="font-size: 18px;"></ion-icon>
+            <ion-item *ngFor="let p of portions; let i = index" style="--background: transparent;">
+              <ion-icon slot="start" 
+                        [name]="p.label.toLowerCase().includes('unknown') ? 'help-circle-outline' : 'restaurant-outline'" 
+                        [color]="p.label.toLowerCase().includes('unknown') ? 'warning' : 'success'"
+                        style="font-size: 18px;">
+              </ion-icon>
+              
               <ion-label>
-                <h3 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                  <strong>{{ p.label | titlecase }}</strong>
-                  <ion-badge color="light" style="font-size: 0.75em; padding: 4px 8px;">{{ p.weight }}g</ion-badge>
-                </h3>
-                <div style="display: flex; gap: 8px; margin-bottom: 4px;">
-                  <ion-badge color="primary" mode="ios" style="font-size: 0.7em;">GI: {{ p.gi }}</ion-badge>
-                  <ion-badge color="success" mode="ios" style="font-size: 0.7em;">GL: {{ p.gl }}</ion-badge>
+                <div *ngIf="!p.label.toLowerCase().includes('unknown')">
+                  <h3 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <strong>{{ p.label | titlecase }}</strong>
+                    <ion-badge color="light" style="font-size: 0.75em; padding: 4px 8px;">{{ p.weight }}g</ion-badge>
+                  </h3>
+                  <div style="display: flex; gap: 8px;">
+                    <ion-badge color="primary" mode="ios" style="font-size: 0.7em;">GI: {{ p.gi }}</ion-badge>
+                    <ion-badge color="success" mode="ios" style="font-size: 0.7em;">GL: {{ p.gl }}</ion-badge>
+                  </div>
+                </div>
+
+                <div *ngIf="p.label.toLowerCase().includes('unknown')">
+                  <h3 style="color: var(--ion-color-warning); font-weight: bold; font-size: 0.85rem;">Identify {{ p.label }}</h3>
+                  <div style="display: flex; gap: 6px; margin-top: 6px;">
+                    <ion-input #mName placeholder="Dish Name" (ionBlur)="updateUnidentifiedItem(i, mName.value, mGI.value)"
+                               style="background: #fff; border: 1px solid #ddd; border-radius: 8px; font-size: 0.85rem; --padding-start: 8px;">
+                    </ion-input>
+                    <ion-input #mGI type="number" placeholder="GI" (ionBlur)="updateUnidentifiedItem(i, mName.value, mGI.value)"
+                               style="background: #fff; border: 1px solid #ddd; border-radius: 8px; width: 70px; font-size: 0.85rem; --padding-start: 8px;">
+                    </ion-input>
+                  </div>
                 </div>
               </ion-label>
             </ion-item>
           </ion-list>
-
-          <hr style="margin: 16px 20px; opacity: 0.1;">
-
-          <!-- OPTIONAL ADJUSTMENTS SECTION -->
-          <div class="ion-padding-horizontal">
-            <h3 style="font-size: 1rem; font-weight: 700; color: var(--ion-color-dark); margin-bottom: 8px;">
-              Optional Adjustments
-            </h3>
-            
-            <!-- Ingredient Toggle -->
-            <ion-item lines="none" style="--padding-start: 0; --background: transparent;">
-              <ion-icon slot="start" name="leaf-outline" color="medium" style="font-size: 20px;"></ion-icon>
-              <ion-label style="font-size: 0.9rem;">Hidden Ingredients?</ion-label>
-              <ion-toggle [(ngModel)]="hasExtraIngredient" color="success"></ion-toggle>
-            </ion-item>
-
-            <!-- Extra Ingredient Type Selection (Only shows if toggle is true) -->
-            <div *ngIf="hasExtraIngredient" class="ion-margin-bottom" style="background: #f4f4f4; border-radius: 12px; padding: 4px;">
-              <ion-item lines="none" style="--background: transparent;">
-                <ion-label position="stacked" style="font-weight: 600;">What was added?</ion-label>
-                <ion-select [(ngModel)]="extraIngredientType" placeholder="Select ingredient">
-                  <ion-select-option value="cheese">Cheese (inside/topped)</ion-select-option>
-                  <ion-select-option value="sauce">Sweet Sauce/Gravy</ion-select-option>
-                  <ion-select-option value="sugar">Sugar Glaze/Coating</ion-select-option>
-                </ion-select>
-              </ion-item>
-            </div>
-
-            <!-- Notes Input -->
-            <div style="background: #f4f4f4; border-radius: 12px; margin-top: 10px; padding: 8px;">
-              <ion-label style="font-weight: 600; font-size: 0.8rem; margin-left: 8px;" color="medium">Meal Notes</ion-label>
-              <ion-textarea 
-                [(ngModel)]="mealNote" 
-                placeholder="e.g. Cheese inside the hotdog, light sauce..." 
-                rows="2"
-                style="font-size: 0.9rem;">
-              </ion-textarea>
-            </div>
-          </div>
 
           <div class="ion-padding">
             <ion-button (click)="confirmAndSave()" expand="block" color="success" class="main-btn">
