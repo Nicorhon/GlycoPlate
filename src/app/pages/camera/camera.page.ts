@@ -165,9 +165,9 @@ export class CameraPage implements OnInit, OnDestroy {
         const tempPortions: MealPortion[] = [];
 
         const regions = [
-          { id: 1, name: 'Scale 1', weight: this.p1, x: 0, y: 0, w: 0.5, h: 0.5 },
-          { id: 2, name: 'Scale 2', weight: this.p2, x: 0.5, y: 0, w: 0.5, h: 0.5 },
-          { id: 3, name: 'Scale 3', weight: this.p3, x: 0, y: 0.5, w: 1, h: 0.5 }
+          { id: 1, name: 'Scale 1', weight: this.p1, x: 0, y: 0.5, w: 1, h: 0.5 },
+          { id: 2, name: 'Scale 2', weight: this.p2, x: 0, y: 0, w: 0.5, h: 0.5 },
+          { id: 3, name: 'Scale 3', weight: this.p3, x: 0.5, y: 0, w: 0.5, h: 0.5 }
         ];
 
         const canvas = document.createElement('canvas');
