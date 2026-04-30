@@ -11,10 +11,10 @@ import { addIcons } from 'ionicons';
 import { camera, refreshOutline, checkmarkCircle, alertCircle, timeOutline, cloudUploadOutline } from 'ionicons/icons';
 import { CameraPreview, CameraPreviewOptions } from '@capacitor-community/camera-preview';
 import { Router } from '@angular/router';
-import * as mobilenet from '@tensorflow-models/mobilenet';
-import * as tf from '@tensorflow/tfjs';
+import * as tf from '@tensorflow/tfjs'; 
+import * as tmImage from '@teachablemachine/image';
 import { FirebaseService } from '../../services/firebase.service';
-import { MealData, MealPortion } from '../../models/meal.model';
+import { MealPortion } from '../../models/meal.model';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -31,7 +31,7 @@ export class CameraPage implements OnInit, OnDestroy {
 
   public photo: string | undefined = undefined;
   public isCameraActive = false;
-  private model: any;
+  private model: tmImage.CustomMobileNet | undefined;
   private iotSubscription: Subscription | undefined;
 
   public p1 = 0; public p2 = 0; public p3 = 0;
@@ -60,8 +60,18 @@ export class CameraPage implements OnInit, OnDestroy {
   }
 
   async initAI() {
-    await tf.ready();
-    this.model = await mobilenet.load();
+    try {
+      await tf.ready();
+      // Your Teachable Machine Model URL
+      const modelURL = 'https://teachablemachine.withgoogle.com/models/luq75XfwN/';
+      const checkpointURL = modelURL + "model.json";
+      const metadataURL = modelURL + "metadata.json";
+
+      this.model = await tmImage.load(checkpointURL, metadataURL);
+      console.log("Teachable Machine Model Loaded!");
+    } catch (e) {
+      console.error("AI Initialization failed:", e);
+    }
   }
 
   async startLiveCamera() {
@@ -79,7 +89,6 @@ export class CameraPage implements OnInit, OnDestroy {
   listenToUserIoT() {
     this.iotSubscription = this.firebaseService.getLivePlateData().subscribe(data => {
       if (data) {
-        // Syncing with users/UID/scale_data
         this.p1 = Number(data.scale1) || 0;
         this.p2 = Number(data.scale2) || 0;
         this.p3 = Number(data.scale3) || 0;
@@ -94,8 +103,7 @@ export class CameraPage implements OnInit, OnDestroy {
   }
 
   get isAligned(): boolean {
-    // UPDATED: Trigger if ANY scale has weight (better for demos)
-    return this.p1 > 10 || this.p2 > 10 || this.p3 > 10;
+    return this.p1 > 0 || this.p2 > 0 || this.p3 > 0;
   }
 
   private handleAutoCapture() {
@@ -134,36 +142,78 @@ export class CameraPage implements OnInit, OnDestroy {
     img.src = base64;
     img.onload = async () => {
       await runInInjectionContext(this.injector, async () => {
-        const pred = await this.model.classify(img);
-        
-        // Demo mapping: p1=Broccoli, p2=Pasta, p3=Chicken
-        const labels = ['Banana', 'Boiled Egg', 'Loaf Bread, Sliced']; 
-        const weights = [this.p1, this.p2, this.p3];
+        this.isProcessing = true;
         const tempPortions: MealPortion[] = [];
 
-        for (let i = 0; i < labels.length; i++) {
-          const nutrition = await this.firebaseService.getFoodData(labels[i]);
-          
-          const gi = nutrition?.glycemicIndex ?? 50; 
-          const netCarbs = weights[i] * ((nutrition?.carbsPer100g ?? 15) / 100);
-          const gl = (gi * netCarbs) / 100;
-          
-          tempPortions.push(this.formatPortion(labels[i], weights[i], gl));
+        // 1. Regions based on scale positions
+        const regions = [
+          { id: 1, name: 'Scale 1', weight: this.p1, x: 0, y: 0, w: 0.5, h: 0.5 },
+          { id: 2, name: 'Scale 2', weight: this.p2, x: 0.5, y: 0, w: 0.5, h: 0.5 },
+          { id: 3, name: 'Scale 3', weight: this.p3, x: 0, y: 0.5, w: 1, h: 0.5 }
+        ];
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        for (const reg of regions) {
+          if (reg.weight > 0 && this.model) {
+            const sw = img.width * reg.w;
+            const sh = img.height * reg.h;
+            const sx = img.width * reg.x;
+            const sy = img.height * reg.y;
+
+            canvas.width = sw;
+            canvas.height = sh;
+            ctx?.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+
+            // 2. Custom Model Prediction
+            const predictions = await this.model.predict(canvas);
+            predictions.sort((a, b) => b.probability - a.probability);
+            const topResult = predictions[0];
+
+            let matchedKey: string | null = null;
+            let nutritionData: any = null;
+
+            // 3. Match result with Firebase if confidence > 60%
+            if (topResult.probability > 0.60) {
+              const aiGuess = topResult.className.toLowerCase().replace('_', ' ').trim();
+              const data = await this.firebaseService.getFoodData(aiGuess);
+              if (data) {
+                matchedKey = aiGuess;
+                nutritionData = data;
+              }
+            }
+
+            if (matchedKey && nutritionData) {
+              const netCarbs = reg.weight * (nutritionData.carbsPer100g / 100);
+              const gl = (nutritionData.glycemicIndex * netCarbs) / 100;
+              tempPortions.push(this.formatPortion(matchedKey, reg.weight, gl, nutritionData.advice));
+            } else {
+              tempPortions.push({
+                label: `Unknown (Scale ${reg.id})`,
+                weight: reg.weight,
+                gl: 0,
+                status: 'NORMAL',
+                color: 'medium',
+                advice: 'Food not recognized.'
+              });
+            }
+          }
         }
-        
+
         this.portions = tempPortions;
         this.isProcessing = false;
-        
-        if (this.canLog) {
-          this.showSuccessModal = true;
+
+        if (this.portions.length > 0) {
+          this.canLog ? this.showSuccessModal = true : this.showHighGLModal = true;
         } else {
-          this.showHighGLModal = true;
+          this.restartScan();
         }
       });
     };
   }
 
-  formatPortion(foodName: string, weight: number, gl: number): MealPortion {
+  formatPortion(foodName: string, weight: number, gl: number, dbAdvice: string): MealPortion {
     const status = gl > 15 ? 'TOO MUCH' : 'NORMAL';
     return {
       label: foodName, 
@@ -171,7 +221,7 @@ export class CameraPage implements OnInit, OnDestroy {
       gl, 
       status,
       color: status === 'NORMAL' ? 'success' : 'danger',
-      advice: status === 'NORMAL' ? 'Safe portion.' : `Reduce ${foodName} portion.`
+      advice: status === 'NORMAL' ? dbAdvice || 'Safe portion.' : `Reduce ${foodName} portion.`
     };
   }
 
@@ -179,17 +229,8 @@ export class CameraPage implements OnInit, OnDestroy {
     return this.portions.length > 0 && this.portions.every(p => p.status === 'NORMAL'); 
   }
 
-  /**
-   * UPDATED: Explicitly maps the meal data to a clean object
-   * to prevent "Maximum call stack size exceeded" errors.
-   */
- /**
-   * UPDATED: Aggressively cleans the meal data using a JSON deep-copy
-   * to strip all hidden Angular/TensorFlow circular references.
-   */
   async confirmAndSave() {
     try {
-      // 1. Map to raw primitives first
       const cleanItems = this.portions.map(p => ({
         label: String(p.label),
         weight: Number(p.weight) || 0,
@@ -198,7 +239,6 @@ export class CameraPage implements OnInit, OnDestroy {
         advice: String(p.advice)
       }));
 
-      // 2. Build the structured meal object
       const mealData: any = {
         timestamp: Date.now(),
         items: cleanItems,
@@ -207,20 +247,14 @@ export class CameraPage implements OnInit, OnDestroy {
         imageUrl: this.photo || ''
       };
 
-      // 3. THE MAGIC FIX: Deep clean via stringify to remove ANY hidden logic
       const pureMealData = JSON.parse(JSON.stringify(mealData));
-
       this.showSuccessModal = false;
       
-      // 4. Send the pure object to Firebase
       await this.firebaseService.addMeal(pureMealData);
-      
-      // Navigate to tabs history
       this.router.navigate(['/tabs/history']);
     } catch (error) {
       console.error("Save failed:", error);
-      // Detailed error alert to help you debug
-      alert("Save Error: Check if your Firebase Rules allow writing to the 'history' node.");
+      alert("Save Error: Check Firebase configuration.");
     }
   }
 

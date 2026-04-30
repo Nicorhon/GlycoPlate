@@ -13,10 +13,10 @@
       <div class="guide-overlay" *ngIf="isCameraActive && !photo">
         <div class="guide-circle" [class.aligned]="isAligned" [class.counting]="stabilityTimer">
           <div class="zone-top">
-            <div class="z">25%<small>Protein</small></div>
-            <div class="z">25%<small>Carbs</small></div>
+            <div class="z">Scale 2<small>Top Left</small></div>
+            <div class="z">Scale 3<small>Top Right</small></div>
           </div>
-          <div class="z zone-bottom">50%<small>Fiber/Veggies</small></div>
+          <div class="z zone-bottom">Scale 1<small>Bottom Section</small></div>
           <div class="center-label">{{ stabilityTimer ? 'HOLD STEADY' : 'PLACE PLATE' }}</div>
         </div>
       </div>
@@ -25,7 +25,7 @@
       
       <div class="processing-overlay" *ngIf="isProcessing">
         <ion-spinner name="crescent"></ion-spinner>
-        <p>Analyzing Meal...</p>
+        <p>Analyzing 3 Zones...</p>
       </div>
     </div>
 
@@ -36,11 +36,18 @@
           Auto-capturing in {{ countdown }}s
         </div>
 
-        <ion-badge [color]="isAligned ? 'success' : 'danger'" class="weight-badge">
-          Live Weight: {{ (p1 + p2 + p3) }}g
+        <div class="multi-weight-row" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 10px;">
+          <ion-badge color="primary">S1: {{ p1 }}g</ion-badge>
+          <ion-badge color="secondary">S2: {{ p2 }}g</ion-badge>
+          <ion-badge color="tertiary">S3: {{ p3 }}g</ion-badge>
+        </div>
+
+        <ion-badge [color]="isAligned ? 'success' : 'danger'" class="weight-badge" style="font-size: 1.1em; padding: 8px 16px;">
+          Total Weight: {{ (p1 + p2 + p3) }}g
         </ion-badge>
+        
         <p class="instruction-text">
-          {{ isAligned ? 'Plate detected! Stay still.' : 'Align GlycoPlate within the guide' }}
+          {{ isAligned ? 'Plate detected! Keep the regions clear.' : 'Align each section with a scale guide' }}
         </p>
       </div>
     </div>
@@ -58,7 +65,7 @@
           <div class="ion-text-center ion-padding-top">
             <ion-icon name="alert-circle" color="danger" style="font-size: 44px;"></ion-icon>
             <h2 style="font-weight: 800; margin: 4px 0;">Portion Alert</h2>
-            <p style="margin-top: 0; font-size: 0.9em;">Adjust meal to avoid glucose spikes.</p>
+            <p style="margin-top: 0; font-size: 0.9em;">Some portions exceed safe glucose limits.</p>
           </div>
 
           <ion-list lines="full" class="compact-list">
@@ -75,12 +82,9 @@
           </ion-list>
 
           <div class="ion-padding">
-            <ion-button (click)="restartScan()" expand="block" color="danger" class="main-btn" style="margin-bottom: 4px;">
+            <ion-button (click)="restartScan()" expand="block" color="danger" class="main-btn">
               <ion-icon slot="start" name="refresh-outline"></ion-icon>
               ADJUST & RETAKE
-            </ion-button>
-            <ion-button (click)="showHighGLModal = false" expand="block" fill="clear" color="medium" size="small">
-              Review Details
             </ion-button>
           </div>
         </div>
@@ -100,7 +104,7 @@
           <div class="ion-text-center ion-padding-top">
             <ion-icon name="checkmark-circle" color="success" style="font-size: 44px;"></ion-icon>
             <h2 style="font-weight: 800; margin: 4px 0;">Perfect Portions</h2>
-            <p style="margin-top: 0; font-size: 0.9em;">Balanced meal ready to be logged.</p>
+            <p style="margin-top: 0; font-size: 0.9em;">All detected foods are within your range.</p>
           </div>
 
           <ion-list lines="full" class="compact-list">
@@ -117,9 +121,9 @@
           </ion-list>
 
           <div class="ion-padding">
-            <ion-button (click)="confirmAndSave()" expand="block" color="success" class="main-btn" style="margin-bottom: 4px;">
+            <ion-button (click)="confirmAndSave()" expand="block" color="success" class="main-btn">
               <ion-icon slot="start" name="cloud-upload-outline"></ion-icon>
-              LOG THIS MEAL
+              LOG FULL MEAL
             </ion-button>
             <ion-button (click)="restartScan()" expand="block" fill="clear" color="medium" size="small">
               Retake Photo

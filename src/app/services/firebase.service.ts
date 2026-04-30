@@ -58,16 +58,30 @@ export class FirebaseService {
     );
   }
 
-  async getFoodData(foodName: string): Promise<any> {
-    try {
-      const foodRef = ref(this.database, `foods/${foodName.toLowerCase()}`);
-      const snapshot = await get(foodRef);
-      return snapshot.exists() ? snapshot.val() : null;
-    } catch (error) {
-      console.error("Error fetching nutrition:", error);
+ async getFoodData(foodName: string): Promise<any> {
+  try {
+    // 1. Clean the search key to ensure it matches your Firebase JSON keys
+    const searchKey = foodName.toLowerCase().trim();
+    const foodRef = ref(this.database, `foods/${searchKey}`);
+    
+    // 2. Fetch the snapshot from the 'foods' node
+    const snapshot = await get(foodRef);
+
+    if (snapshot.exists()) {
+      // 3. Match found! Return the real nutrition data
+      return snapshot.val();
+    } else {
+      // 4. STRICT MODE: Return null if the food isn't in your dataset.
+      // This tells your camera page to label the item as "Unidentified".
+      console.warn(`[STRICT MODE] Food not found in library: ${searchKey}`);
       return null;
     }
+  } catch (error) {
+    console.error("Firebase Fetch Error:", error);
+    // Return null on error to prevent the app from calculating with fake data
+    return null;
   }
+}
 
   /** * UPDATED: Cleans the meal object to prevent 'Maximum call stack' errors
    */
