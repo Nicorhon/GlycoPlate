@@ -137,126 +137,135 @@ export class CameraPage implements OnInit, OnDestroy {
     }
   }
 
-  async analyzePlate(base64: string) {
-    const img = new Image();
-    img.src = base64;
-    img.onload = async () => {
-      await runInInjectionContext(this.injector, async () => {
-        this.isProcessing = true;
-        const tempPortions: MealPortion[] = [];
+async analyzePlate(base64: string) {
+  const img = new Image();
+  img.src = base64;
+  img.onload = async () => {
+    await runInInjectionContext(this.injector, async () => {
+      this.isProcessing = true;
+      const tempPortions: MealPortion[] = [];
 
-        // 1. Regions based on scale positions
-        const regions = [
-          { id: 1, name: 'Scale 1', weight: this.p1, x: 0, y: 0, w: 0.5, h: 0.5 },
-          { id: 2, name: 'Scale 2', weight: this.p2, x: 0.5, y: 0, w: 0.5, h: 0.5 },
-          { id: 3, name: 'Scale 3', weight: this.p3, x: 0, y: 0.5, w: 1, h: 0.5 }
-        ];
+      const regions = [
+        { id: 1, name: 'Scale 1', weight: this.p1, x: 0, y: 0, w: 0.5, h: 0.5 },
+        { id: 2, name: 'Scale 2', weight: this.p2, x: 0.5, y: 0, w: 0.5, h: 0.5 },
+        { id: 3, name: 'Scale 3', weight: this.p3, x: 0, y: 0.5, w: 1, h: 0.5 }
+      ];
 
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
 
-        for (const reg of regions) {
-          if (reg.weight > 0 && this.model) {
-            const sw = img.width * reg.w;
-            const sh = img.height * reg.h;
-            const sx = img.width * reg.x;
-            const sy = img.height * reg.y;
+      for (const reg of regions) {
+        if (reg.weight > 0 && this.model) {
+          const sw = img.width * reg.w;
+          const sh = img.height * reg.h;
+          const sx = img.width * reg.x;
+          const sy = img.height * reg.y;
 
-            canvas.width = sw;
-            canvas.height = sh;
-            ctx?.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+          canvas.width = sw;
+          canvas.height = sh;
+          ctx?.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
 
-            // 2. Custom Model Prediction
-            const predictions = await this.model.predict(canvas);
-            predictions.sort((a, b) => b.probability - a.probability);
-            const topResult = predictions[0];
+          const predictions = await this.model.predict(canvas);
+          predictions.sort((a, b) => b.probability - a.probability);
+          const topResult = predictions[0];
 
-            let matchedKey: string | null = null;
-            let nutritionData: any = null;
+          let matchedKey: string | null = null;
+          let nutritionData: any = null;
 
-            // 3. Match result with Firebase if confidence > 60%
-            if (topResult.probability > 0.60) {
-              const aiGuess = topResult.className.toLowerCase().replace('_', ' ').trim();
-              const data = await this.firebaseService.getFoodData(aiGuess);
-              if (data) {
-                matchedKey = aiGuess;
-                nutritionData = data;
-              }
-            }
-
-            if (matchedKey && nutritionData) {
-              const netCarbs = reg.weight * (nutritionData.carbsPer100g / 100);
-              const gl = (nutritionData.glycemicIndex * netCarbs) / 100;
-              tempPortions.push(this.formatPortion(matchedKey, reg.weight, gl, nutritionData.advice));
-            } else {
-              tempPortions.push({
-                label: `Unknown (Scale ${reg.id})`,
-                weight: reg.weight,
-                gl: 0,
-                status: 'NORMAL',
-                color: 'medium',
-                advice: 'Food not recognized.'
-              });
+          if (topResult.probability > 0.60) {
+            const aiGuess = topResult.className.toLowerCase().replace('_', ' ').trim();
+            const data = await this.firebaseService.getFoodData(aiGuess);
+            if (data) {
+              matchedKey = aiGuess;
+              nutritionData = data;
             }
           }
+
+          if (matchedKey && nutritionData) {
+            const netCarbs = reg.weight * (nutritionData.carbsPer100g / 100);
+            const gl = (nutritionData.glycemicIndex * netCarbs) / 100;
+            
+            // UPDATED: Added nutritionData.glycemicIndex here
+            tempPortions.push(this.formatPortion(
+              matchedKey, 
+              reg.weight, 
+              gl, 
+              nutritionData.advice, 
+              nutritionData.glycemicIndex 
+            ));
+          } else {
+            tempPortions.push({
+              label: `Unknown (Scale ${reg.id})`,
+              weight: reg.weight,
+              gl: 0,
+              gi: 0, // Default to 0 for unknown
+              status: 'NORMAL',
+              color: 'medium',
+              advice: 'Food not recognized.'
+            });
+          }
         }
+      }
 
-        this.portions = tempPortions;
-        this.isProcessing = false;
+      this.portions = tempPortions;
+      this.isProcessing = false;
 
-        if (this.portions.length > 0) {
-          this.canLog ? this.showSuccessModal = true : this.showHighGLModal = true;
-        } else {
-          this.restartScan();
-        }
-      });
-    };
-  }
+      if (this.portions.length > 0) {
+        this.canLog ? this.showSuccessModal = true : this.showHighGLModal = true;
+      } else {
+        this.restartScan();
+      }
+    });
+  };
+}
 
-  formatPortion(foodName: string, weight: number, gl: number, dbAdvice: string): MealPortion {
-    const status = gl > 15 ? 'TOO MUCH' : 'NORMAL';
-    return {
-      label: foodName, 
-      weight, 
-      gl, 
-      status,
-      color: status === 'NORMAL' ? 'success' : 'danger',
-      advice: status === 'NORMAL' ? dbAdvice || 'Safe portion.' : `Reduce ${foodName} portion.`
-    };
-  }
+// UPDATED: Added gi parameter
+formatPortion(foodName: string, weight: number, gl: number, dbAdvice: string, gi: number): MealPortion {
+  const status = gl > 15 ? 'TOO MUCH' : 'NORMAL';
+  return {
+    label: foodName, 
+    weight, 
+    gl: Number(gl.toFixed(2)), // Clean decimal
+    gi: Number(gi) || 0,        // Store the GI from Firebase
+    status,
+    color: status === 'NORMAL' ? 'success' : 'danger',
+    advice: status === 'NORMAL' ? dbAdvice || 'Safe portion.' : `Reduce ${foodName} portion.`
+  };
+}
 
   get canLog() { 
     return this.portions.length > 0 && this.portions.every(p => p.status === 'NORMAL'); 
   }
 
-  async confirmAndSave() {
-    try {
-      const cleanItems = this.portions.map(p => ({
-        label: String(p.label),
-        weight: Number(p.weight) || 0,
-        gl: Number(p.gl.toFixed(2)) || 0,
-        status: String(p.status),
-        advice: String(p.advice)
-      }));
+ async confirmAndSave() {
+  try {
+    const cleanItems = this.portions.map(p => ({
+      label: String(p.label),
+      weight: Number(p.weight) || 0,
+      gl: Number(p.gl) || 0,    // Already formatted in formatPortion
+      gi: Number(p.gi) || 0,    // NEW: Save GI to history
+      status: String(p.status),
+      advice: String(p.advice)
+    }));
 
-      const mealData: any = {
-        timestamp: Date.now(),
-        items: cleanItems,
-        totalWeight: Number((this.p1 + this.p2 + this.p3).toFixed(2)),
-        totalGL: Number(cleanItems.reduce((sum, p) => sum + p.gl, 0).toFixed(2)),
-        imageUrl: this.photo || ''
-      };
+    const mealData: any = {
+      timestamp: Date.now(),
+      items: cleanItems,
+      totalWeight: Number((this.p1 + this.p2 + this.p3).toFixed(2)),
+      totalGL: Number(cleanItems.reduce((sum, p) => sum + p.gl, 0).toFixed(2)),
+      imageUrl: this.photo || ''
+    };
 
-      const pureMealData = JSON.parse(JSON.stringify(mealData));
-      this.showSuccessModal = false;
-      
-      await this.firebaseService.addMeal(pureMealData);
-      this.router.navigate(['/tabs/history']);
-    } catch (error) {
-      console.error("Save failed:", error);
-      alert("Save Error: Check Firebase configuration.");
-    }
+    const pureMealData = JSON.parse(JSON.stringify(mealData));
+    this.showSuccessModal = false;
+    
+    await this.firebaseService.addMeal(pureMealData);
+    this.router.navigate(['/tabs/history']);
+  } catch (error) {
+    console.error("Save failed:", error);
+    alert("Save Error: Check Firebase configuration.");
   }
+}
 
   restartScan() {
     this.photo = undefined;

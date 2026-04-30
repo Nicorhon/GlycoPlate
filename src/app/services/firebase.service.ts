@@ -1,16 +1,15 @@
 import { Injectable, inject } from '@angular/core';
 import { 
-  Database, ref, push, set, query, 
-  orderByChild, equalTo, listVal, remove, get, objectVal 
+  Database, ref, push, set, get, objectVal, listVal, remove 
 } from '@angular/fire/database';
 import { 
   Auth, user, createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, signOut 
 } from '@angular/fire/auth';
 import { Observable, switchMap, map, of } from 'rxjs';
-import { MealData } from '../models/meal.model';
 import { filter } from 'rxjs/operators';
 import { Router } from '@angular/router';
+import { MealData, MealPortion } from '../models/meal.model';
 
 @Injectable({
   providedIn: 'root'
@@ -48,6 +47,9 @@ export class FirebaseService {
     this.router.navigate(['/login']);
   }
 
+  /**
+   * Retrieves live weight data from the physical IoT scales
+   */
   getLivePlateData(): Observable<any> {
     return this.user$.pipe(
       filter(u => !!u),
@@ -58,69 +60,77 @@ export class FirebaseService {
     );
   }
 
- async getFoodData(foodName: string): Promise<any> {
-  try {
-    // 1. Clean the search key to ensure it matches your Firebase JSON keys
-    const searchKey = foodName.toLowerCase().trim();
-    const foodRef = ref(this.database, `foods/${searchKey}`);
-    
-    // 2. Fetch the snapshot from the 'foods' node
-    const snapshot = await get(foodRef);
+  /**
+   * Fetches nutrition facts based on AI classification results
+   */
+  async getFoodData(foodName: string): Promise<any> {
+    try {
+      const searchKey = foodName.toLowerCase().trim();
+      const foodRef = ref(this.database, `foods/${searchKey}`);
+      const snapshot = await get(foodRef);
 
-    if (snapshot.exists()) {
-      // 3. Match found! Return the real nutrition data
-      return snapshot.val();
-    } else {
-      // 4. STRICT MODE: Return null if the food isn't in your dataset.
-      // This tells your camera page to label the item as "Unidentified".
-      console.warn(`[STRICT MODE] Food not found in library: ${searchKey}`);
+      if (snapshot.exists()) {
+        return snapshot.val();
+      } else {
+        console.warn(`[STRICT MODE] Food not found in library: ${searchKey}`);
+        return null;
+      }
+    } catch (error) {
+      console.error("Firebase Fetch Error:", error);
       return null;
     }
-  } catch (error) {
-    console.error("Firebase Fetch Error:", error);
-    // Return null on error to prevent the app from calculating with fake data
-    return null;
   }
-}
 
-  /** * UPDATED: Cleans the meal object to prevent 'Maximum call stack' errors
+  /**
+   * Saves a full meal scan to history, including detailed GI and GL per partition
    */
- async addMeal(meal: MealData) {
-  // 1. Get current UID and force it to a string for the path
-  const user = this.auth.currentUser;
-  const uid = user?.uid;
+  async addMeal(meal: MealData) {
+    const user = this.auth.currentUser;
+    const uid = user?.uid;
 
-  if (!uid) {
-    console.error("Save failed: No authenticated user");
-    throw new Error("No authenticated user found");
+    if (!uid) {
+      console.error("Save failed: No authenticated user");
+      throw new Error("No authenticated user found");
+    }
+
+    try {
+      const userHistoryRef = ref(this.database, `users/${uid}/history`);
+      const newMealRef = push(userHistoryRef);
+
+      // Clean individual items to ensure numeric GI and GL values are saved
+      const processedItems = meal.items.map((item: MealPortion) => ({
+        label: String(item.label),
+        weight: Number(item.weight) || 0,
+        gi: Number(item.gi) || 0,      // Saved for per-item history
+        gl: Number(item.gl) || 0,      // Saved for per-item history
+        status: String(item.status),
+        advice: String(item.advice)
+      }));
+
+      // Construct final object with metadata
+      const finalMeal = {
+        id: newMealRef.key,
+        userId: uid,
+        timestamp: meal.timestamp || Date.now(),
+        items: processedItems,
+        totalWeight: Number(meal.totalWeight) || 0,
+        totalGL: Number(meal.totalGL) || 0,
+        imageUrl: meal.imageUrl || ''
+      };
+
+      // Final deep clean to strip any non-serializable objects from memory
+      const safeData = JSON.parse(JSON.stringify(finalMeal));
+
+      return await set(newMealRef, safeData);
+    } catch (error) {
+      console.error("Firebase History Save Error:", error);
+      throw error;
+    }
   }
 
-  try {
-    // 2. Reference the exact path allowed by your rules: users/$uid/history
-    const userHistoryRef = ref(this.database, `users/${uid}/history`);
-    const newMealRef = push(userHistoryRef);
-
-    // 3. THE FIX: Double-clean the data. 
-    // JSON.stringify removes hidden circular references from TensorFlow/Angular
-    const cleanedMeal = JSON.parse(JSON.stringify(meal));
-
-    // 4. Attach metadata and ensure all numbers are formatted correctly
-    const finalMeal = {
-      ...cleanedMeal,
-      id: newMealRef.key,
-      userId: uid,
-      // Ensure the timestamp is fresh if not provided
-      timestamp: cleanedMeal.timestamp || Date.now()
-    };
-
-    // 5. Save to the user-specific history node
-    return await set(newMealRef, finalMeal);
-  } catch (error) {
-    console.error("Firebase Set Error:", error);
-    throw error;
-  }
-}
-
+  /**
+   * Retrieves meal logs sorted by most recent first
+   */
   getRecentMeals(): Observable<MealData[]> {
     return this.user$.pipe(
       filter(u => !!u),
@@ -139,14 +149,13 @@ export class FirebaseService {
     return remove(mealRef);
   }
 
-  // Add this to your FirebaseService class
-getUserProfileData(): Observable<any> {
-  return this.user$.pipe(
-    filter(u => !!u),
-    switchMap(u => {
-      const profileRef = ref(this.database, `users/${u?.uid}/profile`);
-      return objectVal(profileRef);
-    })
-  );
-}
+  getUserProfileData(): Observable<any> {
+    return this.user$.pipe(
+      filter(u => !!u),
+      switchMap(u => {
+        const profileRef = ref(this.database, `users/${u?.uid}/profile`);
+        return objectVal(profileRef);
+      })
+    );
+  }
 }

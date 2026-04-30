@@ -1,18 +1,19 @@
 export interface MealPortion {
   label: string;
   weight: number;
-  gl: number;
-  status: string; 
-  color: string;
-  advice: string; // <--- Add this line!
+  gi: number;      // Glycemic Index from Database
+  gl: number;      // Calculated Glycemic Load
+  status: string;  // 'NORMAL' or 'TOO MUCH'
+  color: string;   // 'success' or 'danger'
+  advice: string;
 }
 
 export interface MealData {
   id?: string;
-  userId?: string; // Add the '?' to make it optional
   timestamp: number;
-  items: any[];
+  items: MealPortion[];
   totalWeight: number;
   totalGL: number;
-  imageUrl?: string;
+  imageUrl: string;
+  userId?: string;
 }

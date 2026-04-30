@@ -9,7 +9,7 @@
   <div style="background-color: #c8d69b; padding: 15px; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;">
     <ion-row class="ion-align-items-center">
       <ion-col>
-        <h3 style="margin: 0; color: #343b1b; font-weight: 800;">Today's Record</h3>
+        <h3 style="margin: 0; color: #343b1b; font-weight: 800;">History</h3>
         <p style="margin: 0; color: #343b1b; opacity: 0.8; font-size: 0.9rem;">{{ today | date:'fullDate' }}</p>
       </ion-col>
       <ion-col size="auto">
@@ -20,47 +20,62 @@
 </ion-header>
 
 <ion-content>
-  <ion-searchbar placeholder="Search meals..." mode="ios" class="ion-margin-top"></ion-searchbar>
+  <ion-searchbar 
+    placeholder="Search food items..." 
+    mode="ios" 
+    class="ion-margin-top"
+    (ionInput)="onSearch($event)">
+  </ion-searchbar>
 
   <ion-list lines="none" style="background: transparent;">
     <div *ngIf="meals$ | async as meals; else loading">
       
-      <div *ngIf="meals.length === 0" class="ion-text-center ion-padding">
+      <div *ngIf="meals.length === 0" class="ion-text-center ion-padding" style="margin-top: 50px;">
         <ion-icon name="restaurant-outline" style="font-size: 4rem; color: #c8d69b;"></ion-icon>
-        <h4 style="color: #343b1b;">No meals found</h4>
-        <p>Start scanning your plate to see your history!</p>
+        <h4 style="color: #343b1b; font-weight: 700;">No logs found</h4>
+        <p style="color: #666;">Scan a plate to start tracking your glycemic load.</p>
       </div>
 
       <ion-item-sliding *ngFor="let meal of meals">
-        <ion-item class="meal-card ion-margin-bottom" style="--background: #fff; border-radius: 15px; margin: 0 10px 10px 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-          <ion-thumbnail slot="start" style="--border-radius: 10px; width: 60px; height: 60px;">
-            <img [src]="meal?.imageUrl || 'assets/placeholder-food.png'" />
+        <ion-item class="meal-card ion-margin-bottom" style="--background: #fff; border-radius: 15px; margin: 0 10px 12px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+          <ion-thumbnail slot="start" style="--border-radius: 12px; width: 70px; height: 70px;">
+            <img [src]="meal?.imageUrl || 'assets/placeholder-food.png'" style="object-fit: cover;"/>
           </ion-thumbnail>
           
-          <ion-label>
-            <h2 style="font-weight: 700; color: #343b1b; font-size: 1.1rem;">Full Plate Analysis</h2>
-            <p style="color: #3971b8; font-weight: 500; margin-bottom: 4px;">
+          <ion-label class="ion-padding-vertical">
+            <h2 style="font-weight: 800; color: #343b1b; font-size: 1.1rem; margin-bottom: 2px;">Plate Analysis</h2>
+            <p style="color: #3971b8; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem;">
               <ion-icon name="time-outline" style="vertical-align: middle;"></ion-icon>
               {{ meal?.timestamp | date:'hh:mm a' }} • {{ meal?.totalWeight }}g
             </p>
             
-            <div *ngFor="let item of meal.items" style="font-size: 0.85rem; color: #666;">
-              <span [style.color]="item.status === 'TOO MUCH' ? '#eb445a' : '#2dd36f'">●</span>
-              {{ item.label | titlecase }}: {{ item.weight }}g
+            <div *ngFor="let item of meal.items" style="margin-bottom: 6px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 0.9rem; font-weight: 500; color: #444;">
+                  <span [style.color]="item.status === 'TOO MUCH' ? '#eb445a' : '#2dd36f'">●</span> 
+                  {{ item.label | titlecase }} ({{ item.weight }}g)
+                </span>
+              </div>
+              <div style="display: flex; gap: 8px; margin-left: 14px; margin-top: 2px;">
+                <ion-badge color="primary" mode="ios" style="font-size: 0.65rem; --padding-start: 5px; --padding-end: 5px;">GI: {{ item.gi }}</ion-badge>
+                <ion-badge [color]="item.status === 'TOO MUCH' ? 'danger' : 'success'" mode="ios" style="font-size: 0.65rem; --padding-start: 5px; --padding-end: 5px;">GL: {{ item.gl }}</ion-badge>
+              </div>
             </div>
           </ion-label>
 
-          <ion-badge 
-            slot="end" 
-            [style.--background]="(meal?.totalGL || 0) > 20 ? '#eb445a' : '#c8d69b'"
-            [style.color]="(meal?.totalGL || 0) > 20 ? '#fff' : '#343b1b'"
-            style="padding: 8px 12px; border-radius: 8px;">
-            {{ (meal?.totalGL || 0) | number:'1.0-1' }} GL
-          </ion-badge>
+          <div slot="end" style="text-align: center;">
+            <ion-badge 
+              [style.--background]="(meal?.totalGL || 0) > 20 ? '#eb445a' : '#c8d69b'"
+              [style.color]="(meal?.totalGL || 0) > 20 ? '#fff' : '#343b1b'"
+              style="padding: 10px; border-radius: 10px; font-weight: 700; font-size: 1rem; min-width: 65px;">
+              {{ (meal?.totalGL || 0) | number:'1.1-1' }}
+              <small style="display: block; font-size: 0.6rem; font-weight: 400;">TOTAL GL</small>
+            </ion-badge>
+          </div>
         </ion-item>
 
         <ion-item-options side="end">
-          <ion-item-option color="danger" (click)="deleteMeal(meal?.id)">
+          <ion-item-option color="danger" (click)="deleteMeal(meal?.id)" style="border-radius: 0 15px 15px 0;">
             <ion-icon slot="icon-only" name="trash"></ion-icon>
           </ion-item-option>
         </ion-item-options>
@@ -69,9 +84,9 @@
   </ion-list>
 
   <ng-template #loading>
-    <div class="ion-text-center ion-padding">
-      <ion-spinner color="primary"></ion-spinner>
-      <p>Retrieving your logs...</p>
+    <div class="ion-text-center ion-padding" style="margin-top: 100px;">
+      <ion-spinner name="crescent" color="primary"></ion-spinner>
+      <p style="color: #666; margin-top: 10px;">Retrieving meal records...</p>
     </div>
   </ng-template>
 </ion-content>
