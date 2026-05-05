@@ -127,15 +127,23 @@
 </ion-list>
 
           <div class="ion-padding">
-            <ion-button (click)="confirmAndSave()" expand="block" color="success" class="main-btn">
-              <ion-icon slot="start" name="cloud-upload-outline"></ion-icon>
-              CONFIRM & LOG MEAL
-            </ion-button>
-            <ion-button (click)="restartScan()" expand="block" fill="clear" color="medium" size="small">
-              <ion-icon slot="start" name="close-outline"></ion-icon>
-              Discard & Retake
-            </ion-button>
-          </div>
+  <!-- The primary button remains disabled if weight is too high -->
+  <ion-button 
+    (click)="confirmAndSave()" 
+    expand="block" 
+    [color]="canLog ? 'success' : 'medium'" 
+    class="main-btn"
+    [disabled]="!canLog">
+    <ion-icon slot="start" [name]="canLog ? 'cloud-upload-outline' : 'lock-closed-outline'"></ion-icon>
+    {{ canLog ? 'CONFIRM & LOG MEAL' : 'PORTION TOO HEAVY' }}
+  </ion-button>
+
+  <!-- The secondary button text changes to "Adjust & Retake" when blocked -->
+  <ion-button (click)="restartScan()" expand="block" fill="clear" color="medium" size="small">
+    <ion-icon slot="start" [name]="canLog ? 'close-outline' : 'refresh-outline'"></ion-icon>
+    {{ canLog ? 'Discard & Retake' : 'ADJUST & RETAKE' }}
+  </ion-button>
+</div>
         </div>
       </ion-content>
     </ng-template>

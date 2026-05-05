@@ -238,18 +238,18 @@ export class CameraPage implements OnInit, OnDestroy {
   }
 
   formatPortion(foodName: string, weight: number, gl: number, dbAdvice: string, gi: number): MealPortion {
-    const status = gl > 15 ? 'TOO MUCH' : 'NORMAL';
-    return {
-      label: foodName, 
-      weight, 
-      gl: Number(gl.toFixed(2)),
-      gi: Number(gi) || 0,
-      status,
-      color: status === 'NORMAL' ? 'success' : 'danger',
-      advice: status === 'NORMAL' ? dbAdvice || 'Safe portion.' : `Reduce ${foodName} portion.`
-    };
-  }
-
+  // If GL is over 15, the status becomes 'TOO MUCH', which makes canLog return false
+  const status = gl > 15 ? 'TOO MUCH' : 'NORMAL'; 
+  return {
+    label: foodName, 
+    weight, 
+    gl: Number(gl.toFixed(2)),
+    gi: Number(gi) || 0,
+    status,
+    color: status === 'NORMAL' ? 'success' : 'danger',
+    advice: status === 'NORMAL' ? dbAdvice : 'Portion exceeds recommended Glycemic Load.'
+  };
+}
   /**
    * Recalculates nutritional data for unidentified items based on manual user input.
    * Assumes a standard estimated carbohydrate density for unknown mixed dishes.
