@@ -3,149 +3,151 @@
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/home"></ion-back-button>
     </ion-buttons>
-    <ion-title style="font-weight: 700;">SMART SCAN</ion-title>
+    <ion-title style="font-weight: 700; letter-spacing: 1px;">GLYCOPLATE AI</ion-title>
+    <ion-buttons slot="end">
+      <ion-badge color="light" mode="ios" style="margin-right: 10px;">BETA</ion-badge>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content>
   <div class="camera-layout-wrapper">
+    <!-- Camera Section -->
     <div class="camera-stack" id="camera-parent">
       <div class="guide-overlay" *ngIf="isCameraActive && !photo">
-        <div class="guide-circle" [class.aligned]="isAligned" [class.counting]="stabilityTimer">
+        <!-- Circle turns green only when canProceed is true -->
+        <div class="guide-circle" [class.aligned]="canProceed">
           <div class="zone-top">
             <div class="z">Scale 2<small>Top Left</small></div>
             <div class="z">Scale 3<small>Top Right</small></div>
           </div>
           <div class="z zone-bottom">Scale 1<small>Bottom Section</small></div>
-          <div class="center-label">{{ stabilityTimer ? 'HOLD STEADY' : 'PLACE PLATE' }}</div>
+          
+          <div class="center-label">
+            <ion-icon [name]="canProceed ? 'checkmark-circle' : 'scan-outline'" style="font-size: 24px;"></ion-icon>
+            <p>{{ feedbackStatus }}</p>
+          </div>
         </div>
-      </div>
+
+        <!-- Flash Toggle -->
+       <!--  <ion-button fill="clear" class="flash-btn" (click)="toggleFlash()">
+          <ion-icon [name]="isFlashOn ? 'flash' : 'flash-off'" slot="icon-only" color="light"></ion-icon>
+        </ion-button> -->
+      </div> 
 
       <img *ngIf="photo" [src]="photo" class="captured-preview" />
       
+      <!-- Processing Overlay -->
       <div class="processing-overlay" *ngIf="isProcessing">
-        <ion-spinner name="crescent"></ion-spinner>
-        <p>Analyzing 3 Zones...</p>
+        <ion-spinner name="crescent" color="light"></ion-spinner>
+        <p>Analyzing Portions...</p>
       </div>
     </div>
 
+    <!-- Real-time weight tracking & Manual Controls -->
     <div class="controls-card">
       <div class="weight-status ion-text-center ion-padding-top">
-        <div *ngIf="stabilityTimer" class="auto-timer">
-          <ion-icon name="time-outline"></ion-icon>
-          Capturing in {{ countdown }}s
+        
+        <div class="multi-weight-row" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 12px;">
+          <ion-badge [color]="p1 > 0 ? 'primary' : 'medium'">S1: {{ p1 }}g</ion-badge>
+          <ion-badge [color]="p2 > 0 ? 'secondary' : 'medium'">S2: {{ p2 }}g</ion-badge>
+          <ion-badge [color]="p3 > 0 ? 'tertiary' : 'medium'">S3: {{ p3 }}g</ion-badge>
         </div>
 
-        <div class="multi-weight-row" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 10px;">
-          <ion-badge color="primary">S1: {{ p1 }}g</ion-badge>
-          <ion-badge color="secondary">S2: {{ p2 }}g</ion-badge>
-          <ion-badge color="tertiary">S3: {{ p3 }}g</ion-badge>
-        </div>
+        <!-- Capture Action Button -->
+        <ion-button 
+          (click)="captureImage()" 
+          expand="block" 
+          [disabled]="!canProceed || isProcessing"
+          class="main-scan-btn"
+          style="--border-radius: 50px; margin: 10px 20px; font-weight: 700;">
+          <ion-icon slot="start" name="camera"></ion-icon>
+          {{ isProcessing ? 'ANALYZING...' : 'CAPTURE & ANALYZE' }}
+        </ion-button>
 
-        <ion-badge [color]="isAligned ? 'success' : 'danger'" class="weight-badge" style="font-size: 1.1em; padding: 8px 16px;">
-          Total Weight: {{ (p1 + p2 + p3) }}g
-        </ion-badge>
+        <p class="status-hint" [style.color]="canProceed ? 'var(--ion-color-success)' : '#999'">
+          {{ feedbackStatus }}
+        </p>
       </div>
     </div>
   </div>
 
-  <ion-modal [isOpen]="showSuccessModal" (didDismiss)="showSuccessModal = false" class="center-modal">
-    <ng-template>
-      <ion-header class="ion-no-border">
-        <ion-toolbar color="success">
-          <ion-title>Review & Adjust</ion-title>
-        </ion-toolbar>
-      </ion-header>
-      
-      <ion-content class="no-scroll-content">
-        <div class="modal-wrapper">
-          <div class="ion-text-center ion-padding-top">
-            <ion-icon name="checkmark-circle" color="success" style="font-size: 44px;"></ion-icon>
-            <h2 style="font-weight: 800; margin: 4px 0;">Perfect Portions</h2>
-            <p style="margin-top: 0; font-size: 0.9em;">Detected items from 3 zones.</p>
+  <!-- Analysis Result Modal -->
+<ion-modal [isOpen]="showSuccessModal || showHighGLModal" (didDismiss)="restartScan()" class="center-modal">
+  <ng-template>
+    <ion-header class="ion-no-border">
+      <ion-toolbar [color]="showHighGLModal ? 'danger' : 'success'">
+        <ion-title>{{ showHighGLModal ? 'High GL Warning' : 'AI Analysis' }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="restartScan()">
+            <ion-icon name="close" slot="icon-only"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    
+    <ion-content class="ion-padding">
+      <div class="modal-wrapper">
+        <div class="ion-text-center">
+          <ion-icon [name]="showHighGLModal ? 'alert-circle-outline' : 'sparkles-outline'" 
+                    [color]="showHighGLModal ? 'danger' : 'success'" 
+                    style="font-size: 64px;"></ion-icon>
           </div>
 
-          <ion-list lines="full" class="compact-list">
-            <ion-item *ngFor="let p of portions; let i = index" style="--background: transparent;">
-              <ion-icon slot="start" 
-                        [name]="p.label.toLowerCase().includes('unknown') ? 'help-circle-outline' : 'restaurant-outline'" 
-                        [color]="p.label.toLowerCase().includes('unknown') ? 'warning' : 'success'"
-                        style="font-size: 18px;">
-              </ion-icon>
+        <ion-list lines="none">
+          <ion-item *ngFor="let p of portions">
+            <ion-label>
+              <h2 style="font-weight: 800; font-size: 1.3rem; margin-bottom: 8px; color: var(--ion-color-dark);">
+                {{ p.label | titlecase }}
+              </h2>
+
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <p>Weight: <strong>{{ p.weight }}g</strong></p>
+                <ion-badge [color]="p.color">{{ p.status }}</ion-badge>
+              </div>
+              <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <ion-badge color="primary">GI: {{ p.gi }}</ion-badge>
+                <ion-badge color="dark">GL: {{ p.gl }}</ion-badge>
+              </div>
+              <p class="ion-padding-top" style="font-style: italic; color: #666; font-size: 0.9rem;">{{ p.advice }}</p>
               
-              <ion-label>
-                <div *ngIf="!p.label.toLowerCase().includes('unknown')">
-                  <h3 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <strong>{{ p.label | titlecase }}</strong>
-                    <ion-badge color="light" style="font-size: 0.75em; padding: 4px 8px;">{{ p.weight }}g</ion-badge>
-                  </h3>
-                  <div style="display: flex; gap: 8px;">
-                    <ion-badge color="primary" mode="ios" style="font-size: 0.7em;">GI: {{ p.gi }}</ion-badge>
-                    <ion-badge color="success" mode="ios" style="font-size: 0.7em;">GL: {{ p.gl }}</ion-badge>
-                  </div>
-                </div>
+              <div style="border-bottom: 1px solid #eee; margin-top: 15px;"></div>
+            </ion-label>
+          </ion-item>
 
-                <div *ngIf="p.label.toLowerCase().includes('unknown')">
-                  <h3 style="color: var(--ion-color-warning); font-weight: bold; font-size: 0.85rem;">Identify {{ p.label }}</h3>
-                  <div style="display: flex; gap: 6px; margin-top: 6px;">
-                    <ion-input #mName placeholder="Dish Name" (ionBlur)="updateUnidentifiedItem(i, mName.value, mGI.value)"
-                               style="background: #fff; border: 1px solid #ddd; border-radius: 8px; font-size: 0.85rem; --padding-start: 8px;">
-                    </ion-input>
-                    <ion-input #mGI type="number" placeholder="GI" (ionBlur)="updateUnidentifiedItem(i, mName.value, mGI.value)"
-                               style="background: #fff; border: 1px solid #ddd; border-radius: 8px; width: 70px; font-size: 0.85rem; --padding-start: 8px;">
-                    </ion-input>
-                  </div>
-                </div>
-              </ion-label>
-            </ion-item>
-          </ion-list>
+          <ion-item-divider mode="md" style="margin-top: 10px;">
+            <ion-label>ADJUSTMENTS</ion-label>
+          </ion-item-divider>
 
-          <!-- ADD THIS INSIDE THE MODAL WRAPPER -->
-<ion-list lines="none" class="extra-options-list">
-  <ion-item>
-    <ion-label>Added extra ingredients?</ion-label>
-    <ion-toggle slot="end" [(ngModel)]="hasExtraIngredient"></ion-toggle>
-  </ion-item>
+          <ion-item>
+            <ion-label>Add Extras?</ion-label>
+            <ion-toggle slot="end" [(ngModel)]="hasExtraIngredient"></ion-toggle>
+          </ion-item>
 
-  <ion-item *ngIf="hasExtraIngredient">
-    <ion-select label="What did you add?" placeholder="Select Type" [(ngModel)]="extraIngredientType">
-      <ion-select-option value="cheese">Cheese (+1.2 GL)</ion-select-option>
-      <ion-select-option value="sauce">Sauce (+3.5 GL)</ion-select-option>
-      <ion-select-option value="sugar">Sugar/Glaze (+6.0 GL)</ion-select-option>
-    </ion-select>
-  </ion-item>
+          <ion-item *ngIf="hasExtraIngredient">
+            <ion-select label="Select Addition" placeholder="Choose" [(ngModel)]="extraIngredientType">
+              <ion-select-option value="cheese">Cheese (+1.2 GL)</ion-select-option>
+              <ion-select-option value="sauce">Sauce (+3.5 GL)</ion-select-option>
+              <ion-select-option value="sugar">Sweet Glaze (+6.0 GL)</ion-select-option>
+            </ion-select>
+          </ion-item>
 
-  <ion-item>
-    <ion-textarea 
-      label="Meal Notes" 
-      labelPlacement="stacked" 
-      placeholder="e.g. Lunch with the team" 
-      [(ngModel)]="mealNote"
-      [autoGrow]="true">
-    </ion-textarea>
-  </ion-item>
-</ion-list>
+          <ion-item>
+            <ion-textarea label="Notes" labelPlacement="stacked" [(ngModel)]="mealNote" placeholder="Any comments?"></ion-textarea>
+          </ion-item>
+        </ion-list>
 
-          <div class="ion-padding">
-  <!-- The primary button remains disabled if weight is too high -->
-  <ion-button 
-    (click)="confirmAndSave()" 
-    expand="block" 
-    [color]="canLog ? 'success' : 'medium'" 
-    class="main-btn"
-    [disabled]="!canLog">
-    <ion-icon slot="start" [name]="canLog ? 'cloud-upload-outline' : 'lock-closed-outline'"></ion-icon>
-    {{ canLog ? 'CONFIRM & LOG MEAL' : 'PORTION TOO HEAVY' }}
-  </ion-button>
-
-  <!-- The secondary button text changes to "Adjust & Retake" when blocked -->
-  <ion-button (click)="restartScan()" expand="block" fill="clear" color="medium" size="small">
-    <ion-icon slot="start" [name]="canLog ? 'close-outline' : 'refresh-outline'"></ion-icon>
-    {{ canLog ? 'Discard & Retake' : 'ADJUST & RETAKE' }}
-  </ion-button>
-</div>
+        <div class="ion-padding-top">
+          <ion-button expand="block" (click)="confirmAndSave()" [color]="showHighGLModal ? 'danger' : 'success'">
+            <ion-icon name="checkmark-done" slot="start"></ion-icon>
+            CONFIRM & LOG MEAL
+          </ion-button>
+          <ion-button expand="block" fill="clear" color="medium" (click)="restartScan()">
+            RESCAN
+          </ion-button>
         </div>
-      </ion-content>
-    </ng-template>
-  </ion-modal>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
 </ion-content>

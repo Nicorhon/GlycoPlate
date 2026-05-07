@@ -61,6 +61,20 @@ export class FirebaseService {
   }
 
   /**
+   * NEW: Saves "user invented meals" or custom food data to the library
+   * This allows the app to recognize the food in future scans.
+   */
+  async saveCustomFood(foodName: string, foodData: { carbsPer100g: number, glycemicIndex: number, advice: string }) {
+    const searchKey = foodName.toLowerCase().trim();
+    const foodRef = ref(this.database, `foods/${searchKey}`);
+    return set(foodRef, {
+      ...foodData,
+      isCustom: true,
+      dateAdded: new Date().toISOString()
+    });
+  }
+
+  /**
    * Fetches nutrition facts based on AI classification results
    */
   async getFoodData(foodName: string): Promise<any> {
@@ -72,7 +86,7 @@ export class FirebaseService {
       if (snapshot.exists()) {
         return snapshot.val();
       } else {
-        console.warn(`[STRICT MODE] Food not found in library: ${searchKey}`);
+        console.warn(`Food not found in library: ${searchKey}`);
         return null;
       }
     } catch (error) {
@@ -82,32 +96,27 @@ export class FirebaseService {
   }
 
   /**
-   * Saves a full meal scan to history, including detailed GI and GL per partition
+   * Saves a full meal scan to history, including detailed GI and GL
    */
   async addMeal(meal: MealData) {
     const user = this.auth.currentUser;
     const uid = user?.uid;
 
-    if (!uid) {
-      console.error("Save failed: No authenticated user");
-      throw new Error("No authenticated user found");
-    }
+    if (!uid) throw new Error("No authenticated user found");
 
     try {
       const userHistoryRef = ref(this.database, `users/${uid}/history`);
       const newMealRef = push(userHistoryRef);
 
-      // Clean individual items to ensure numeric GI and GL values are saved
       const processedItems = meal.items.map((item: MealPortion) => ({
         label: String(item.label),
         weight: Number(item.weight) || 0,
-        gi: Number(item.gi) || 0,      // Saved for per-item history
-        gl: Number(item.gl) || 0,      // Saved for per-item history
+        gi: Number(item.gi) || 0,
+        gl: Number(item.gl) || 0,
         status: String(item.status),
         advice: String(item.advice)
       }));
 
-      // Construct final object with metadata
       const finalMeal = {
         id: newMealRef.key,
         userId: uid,
@@ -115,22 +124,17 @@ export class FirebaseService {
         items: processedItems,
         totalWeight: Number(meal.totalWeight) || 0,
         totalGL: Number(meal.totalGL) || 0,
-        imageUrl: meal.imageUrl || ''
+        imageUrl: meal.imageUrl || '',
+        note: meal.note || ''
       };
 
-      // Final deep clean to strip any non-serializable objects from memory
-      const safeData = JSON.parse(JSON.stringify(finalMeal));
-
-      return await set(newMealRef, safeData);
+      return await set(newMealRef, JSON.parse(JSON.stringify(finalMeal)));
     } catch (error) {
       console.error("Firebase History Save Error:", error);
       throw error;
     }
   }
 
-  /**
-   * Retrieves meal logs sorted by most recent first
-   */
   getRecentMeals(): Observable<MealData[]> {
     return this.user$.pipe(
       filter(u => !!u),

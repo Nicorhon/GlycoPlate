@@ -29,6 +29,7 @@
     "@capacitor/core": "^8.3.0",
     "@capacitor/filesystem": "^8.1.2",
     "@capacitor/preferences": "^8.0.1",
+    "@google/generative-ai": "^0.24.1",
     "@ionic/angular": "^8.0.0",
     "@ionic/pwa-elements": "^3.4.0",
     "@teachablemachine/image": "^0.8.5",

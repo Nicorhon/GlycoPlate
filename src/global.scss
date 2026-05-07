@@ -93,3 +93,22 @@ ion-button {
   z-index: 9999;
   pointer-events: auto !important;
 }
+
+/* Custom Toast Styling to make it "Iconic" */
+.glyco-validation-toast {
+  --background: #f4f5f8;
+  --color: #222428;
+  --button-color: #3880ff; // Glyco Blue
+  --border-radius: 12px;
+  --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  
+  &::part(icon) {
+    color: #eb445a; // Red for errors
+    font-size: 24px;
+  }
+
+  &::part(message) {
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+  }
+}
