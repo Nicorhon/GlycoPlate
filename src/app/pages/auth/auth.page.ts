@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { 
   IonContent, IonHeader, IonToolbar, IonTitle, IonItem, 
   IonLabel, IonInput, IonButton, IonIcon, IonList,
-  IonSelect, IonSelectOption, IonToast 
+  IonSelect, IonSelectOption, IonToast, IonGrid, IonRow, IonCol // Added Grid components for biometrics layout
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
@@ -21,7 +21,7 @@ import { Router } from '@angular/router';
   imports: [
     CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, 
     IonTitle, IonItem, IonLabel, IonInput, IonButton, IonIcon, IonList,
-    IonSelect, IonSelectOption, IonToast 
+    IonSelect, IonSelectOption, IonToast, IonGrid, IonRow, IonCol // Registered grid imports
   ],
   templateUrl: './auth.page.html',
   styleUrls: ['./auth.page.scss']
@@ -37,10 +37,13 @@ export class AuthPage {
   // Track page flow state
   authState: 'credentials' | 'verify' | 'profile' = 'credentials';
 
-  // Target Health Metrics Storage
+  // Target Health Metrics Storage (UPDATED: Added biometric metrics)
   healthProfile = {
     displayName: '',
-    condition: ''
+    condition: '',
+    weight: null as number | null,
+    height: null as number | null,
+    age: null as number | null
   };
 
   // Toast State Management
@@ -56,20 +59,23 @@ export class AuthPage {
     });
   }
 
-  // FIX: Fires every time the page becomes active to prevent old data leaks
+  // Fires every time the page becomes active to prevent old data leaks
   ionViewWillEnter() {
     this.resetAuthPage();
   }
 
-  // Form Reset Utility
+  // Form Reset Utility (UPDATED: Resets biometrics to a pristine state)
   resetAuthPage() {
     this.email = '';
     this.password = '';
     this.isLogin = true;
-    this.authState = 'credentials'; // Instantly restores the email/password state
+    this.authState = 'credentials'; 
     this.healthProfile = {
       displayName: '',
-      condition: ''
+      condition: '',
+      weight: null,
+      height: null,
+      age: null
     };
   }
 
@@ -147,6 +153,7 @@ export class AuthPage {
     }
   }
 
+  // Save Setup Action (UPDATED: Added strong validation parameters for biometrics)
   async saveHealthProfile() {
     if (!this.healthProfile.displayName.trim()) {
       this.showToast('Please input your name to finalize your health profile.', 'warning');
@@ -154,6 +161,18 @@ export class AuthPage {
     }
     if (!this.healthProfile.condition) {
       this.showToast('Please select a monitoring condition.', 'warning');
+      return;
+    }
+    if (!this.healthProfile.weight || this.healthProfile.weight <= 0) {
+      this.showToast('Please input a valid weight in kilograms.', 'warning');
+      return;
+    }
+    if (!this.healthProfile.height || this.healthProfile.height <= 0) {
+      this.showToast('Please input a valid height in centimeters.', 'warning');
+      return;
+    }
+    if (!this.healthProfile.age || this.healthProfile.age <= 0) {
+      this.showToast('Please input a valid age.', 'warning');
       return;
     }
 

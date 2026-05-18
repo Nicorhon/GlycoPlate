@@ -46,7 +46,7 @@ export class FirebaseService {
 
   async logout() {
     await signOut(this.auth);
-    this.router.navigate(['/login']); // Pointing cleanly to your single auth state page
+    window.location.href = '/login';
   }
 
   /**
@@ -78,9 +78,16 @@ export class FirebaseService {
   }
 
   /**
-   * Commits the custom GlycoPlate onboarding health parameters to the user's profile node
+   * Commits the custom GlycoPlate onboarding health parameters to the user's profile node.
+   * UPDATED: Accepts weight, height, and age explicitly.
    */
-  async saveUserProfileData(profileData: { displayName: string, condition: string }) {
+  async saveUserProfileData(profileData: { 
+    displayName: string, 
+    condition: string, 
+    weight: number | null, 
+    height: number | null, 
+    age: number | null 
+  }) {
     const currentUser = this.auth.currentUser;
     if (!currentUser) throw new Error("Session expired. Please log in again.");
     
@@ -89,6 +96,9 @@ export class FirebaseService {
       email: currentUser.email,
       displayName: profileData.displayName,
       condition: profileData.condition,
+      weight: profileData.weight ? Number(profileData.weight) : 0,
+      height: profileData.height ? Number(profileData.height) : 0,
+      age: profileData.age ? Number(profileData.age) : 0,
       uid: currentUser.uid,
       photoURL: '',
       createdAt: new Date().toISOString()
@@ -223,11 +233,11 @@ export class FirebaseService {
   }
 
   async updateProfilePicture(base64String: string) {
-  const uid = this.auth.currentUser?.uid;
-  if (!uid) throw new Error("No active user session");
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) throw new Error("No active user session");
 
-  // Targets users/${uid}/profile/photoURL node directly
-  const photoNodeRef = ref(this.database, `users/${uid}/profile/photoURL`);
-  return set(photoNodeRef, base64String);
-}
+    // Targets users/${uid}/profile/photoURL node directly
+    const photoNodeRef = ref(this.database, `users/${uid}/profile/photoURL`);
+    return set(photoNodeRef, base64String);
+  }
 }

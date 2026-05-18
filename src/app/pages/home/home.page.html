@@ -42,7 +42,12 @@
     <ion-card-header>
       <ion-row class="ion-align-items-center">
         <ion-col>
-          <ion-card-subtitle color="primary">{{ currentFilter | uppercase }} GL INTAKE</ion-card-subtitle>
+          <ion-card-subtitle color="primary">
+            {{ currentFilter | uppercase }} GL INTAKE 
+            <span *ngIf="currentFilter === 'daily' && dailyMaxGL < 100" style="font-weight: 700; color: var(--ion-color-tertiary);">
+              (RESTRICTIVE)
+            </span>
+          </ion-card-subtitle>
           <ion-card-title style="font-size: 1.8rem; font-weight: bold; color: #343b1b;">
             {{ displayGLTotal }}<span style="font-size: 0.9rem; font-weight: normal;"> / {{ dynamicLimit }} GL</span>
           </ion-card-title>
@@ -62,7 +67,7 @@
       <div class="ion-padding-top" *ngIf="displayGLTotal >= dynamicLimit">
         <ion-chip color="danger" outline="true">
           <ion-icon name="alert-circle"></ion-icon>
-          <ion-label>{{ currentFilter | titlecase }} limit reached</ion-label>
+          <ion-label>{{ currentFilter | titlecase }} Glycemic Target Reached</ion-label>
         </ion-chip>
       </div>
     </ion-card-content>
@@ -73,16 +78,20 @@
       <ion-card-title color="tertiary" style="font-size: 1rem;">Live Plate Load</ion-card-title>
     </ion-card-header>
     <ion-card-content>
-       <p style="color: #343b1b;">The sensors are detecting <strong>{{ currentWeight }}g</strong>. Use the Camera to log this meal.</p>
+       <p style="color: #343b1b;">The sensors are detecting <strong>{{ currentWeight }}g</strong> on the load cells. Use the Camera tab to classify and log this meal.</p>
     </ion-card-content>
   </ion-card>
 
   <ion-item lines="none" class="ion-margin" style="--background: #c8d69b; border-radius: 12px;">
     <ion-icon name="bulb" slot="start" color="primary"></ion-icon>
     <ion-label class="ion-text-wrap">
-      <h3 style="font-weight: bold;">Daily Health Tip</h3>
-      <p style="color: #343b1b;">Check your history to see how your glycemic load fluctuates over the week!</p>
+      <h3 style="font-weight: bold;">Dynamic Tracking Insights</h3>
+      <p *ngIf="dailyMaxGL < 100" style="color: #343b1b;">
+        Your daily limit is locked at <strong>{{ dailyMaxGL }} GL</strong> due to your active <strong>{{ userCondition }}</strong> parameters to prevent dangerous postprandial spikes.
+      </p>
+      <p *ngIf="dailyMaxGL >= 100" style="color: #343b1b;">
+        Maintaining a daily glycemic load below 100 is excellent for structural wellness and metabolic health tracking.
+      </p>
     </ion-label>
   </ion-item>
-
 </ion-content>

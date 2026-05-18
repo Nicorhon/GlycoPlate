@@ -9,7 +9,7 @@
   </ion-toolbar>
   
   <ion-toolbar color="primary">
-    <ion-segment value="daily" (ionChange)="filterChange($event)" mode="md" style="--background: rgba(255,255,255,0.1);">
+    <ion-segment [value]="currentFilter" (ionChange)="filterChange($event)" mode="md" style="--background: rgba(255,255,255,0.1);">
       <ion-segment-button value="daily"><ion-label>Daily</ion-label></ion-segment-button>
       <ion-segment-button value="weekly"><ion-label>Weekly</ion-label></ion-segment-button>
       <ion-segment-button value="monthly"><ion-label>Monthly</ion-label></ion-segment-button>
@@ -32,7 +32,7 @@
         <h2 style="font-weight: bold; color: #343b1b;">Portion Limit Exceeded</h2>
         <p style="color: #343b1b;">
           Current: <strong>{{ currentWeight }}g</strong>. 
-          Please remove <strong>{{ weightDiff }}g</strong> to maintain low GI stability.
+          Please remove <strong>{{ weightDiff }}g</strong> to maintain stability.
         </p>
       </ion-label>
     </ion-item>
@@ -42,9 +42,14 @@
     <ion-card-header>
       <ion-row class="ion-align-items-center">
         <ion-col>
-          <ion-card-subtitle color="primary">DAILY GL INTAKE</ion-card-subtitle>
+          <ion-card-subtitle color="primary">
+            {{ currentFilter | uppercase }} GL INTAKE 
+            <span *ngIf="currentFilter === 'daily' && dailyMaxGL < 100" style="font-weight: 700; color: var(--ion-color-tertiary);">
+              (RESTRICTIVE)
+            </span>
+          </ion-card-subtitle>
           <ion-card-title style="font-size: 1.8rem; font-weight: bold; color: #343b1b;">
-            {{ dailyGLIntake }}<span style="font-size: 0.9rem; font-weight: normal;"> / {{ maxDailyLimit }} GL</span>
+            {{ displayGLTotal }}<span style="font-size: 0.9rem; font-weight: normal;"> / {{ dynamicLimit }} GL</span>
           </ion-card-title>
         </ion-col>
         <ion-col size="auto">
@@ -59,10 +64,10 @@
         style="height: 12px; border-radius: 6px; --progress-background: #c8d69b; --buffer-background: #fbfcee;">
       </ion-progress-bar>
       
-      <div class="ion-padding-top" *ngIf="dailyGLIntake >= maxDailyLimit">
+      <div class="ion-padding-top" *ngIf="displayGLTotal >= dynamicLimit">
         <ion-chip color="danger" outline="true">
           <ion-icon name="alert-circle"></ion-icon>
-          <ion-label>Daily GL limit reached</ion-label>
+          <ion-label>{{ currentFilter | titlecase }} Glycemic Target Reached</ion-label>
         </ion-chip>
       </div>
     </ion-card-content>
@@ -73,16 +78,20 @@
       <ion-card-title color="tertiary" style="font-size: 1rem;">Live Plate Load</ion-card-title>
     </ion-card-header>
     <ion-card-content>
-       <p style="color: #343b1b;">The sensors are currently detecting <strong>{{ currentWeight }}g</strong> on the plate. Proceed to the camera tab to analyze this portion.</p>
+       <p style="color: #343b1b;">The sensors are detecting <strong>{{ currentWeight }}g</strong> on the load cells. Use the Camera tab to classify and log this meal.</p>
     </ion-card-content>
   </ion-card>
 
   <ion-item lines="none" class="ion-margin" style="--background: #c8d69b; border-radius: 12px;">
     <ion-icon name="bulb" slot="start" color="primary"></ion-icon>
     <ion-label class="ion-text-wrap">
-      <h3 style="font-weight: bold;">Daily Health Tip</h3>
-      <p style="color: #343b1b;">Fiber helps slow sugar absorption. Your Broccoli readings are looking good today!</p>
+      <h3 style="font-weight: bold;">Dynamic Tracking Insights</h3>
+      <p *ngIf="dailyMaxGL < 100" style="color: #343b1b;">
+        Your daily limit is locked at <strong>{{ dailyMaxGL }} GL</strong> due to your active <strong>{{ userCondition }}</strong> parameters to prevent dangerous postprandial spikes.
+      </p>
+      <p *ngIf="dailyMaxGL >= 100" style="color: #343b1b;">
+        Maintaining a daily glycemic load below 100 is excellent for structural wellness and metabolic health tracking.
+      </p>
     </ion-label>
   </ion-item>
-
 </ion-content>

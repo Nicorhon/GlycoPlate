@@ -112,3 +112,22 @@ ion-button {
     font-family: 'Inter', sans-serif;
   }
 }
+
+/* Aesthetic Toast matching the GlycoPlate Profile Palette */
+.glyco-profile-success-toast {
+  --background: var(--ion-color-secondary); /* Sage Green #c8d69b */
+  --color: var(--ion-color-secondary-contrast); /* Deep Slate Green #343b1b */
+  --border-radius: 14px;
+  --box-shadow: 0 8px 24px rgba(52, 59, 27, 0.15);
+  font-family: 'Inter', system-ui, sans-serif;
+  
+  &::part(container) {
+    border-left: 6px solid var(--ion-color-tertiary); /* Dark Accent Highlight */
+    padding: 4px 8px;
+  }
+
+  &::part(message) {
+    font-weight: 700;
+    letter-spacing: 0.2px;
+  }
+}

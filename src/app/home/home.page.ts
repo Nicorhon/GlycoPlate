@@ -32,57 +32,117 @@ export class HomePage implements OnInit, OnDestroy {
   
   private iotSubscription: Subscription | undefined;
   private historySubscription: Subscription | undefined;
+  private profileSubscription: Subscription | undefined; // Added subscription tracker for health profiles
 
-  // IoT Sensor Data (Live from Database)
+  // IoT Sensor Data
   currentWeight: number = 0; 
-  
-  // Daily Tracking Data (Calculated from History)
-  dailyGLIntake: number = 0;   
-  maxDailyLimit: number = 100; // GL daily limit is usually 100
-  
-  // Portion Control Logic (Threshold in grams)
   idealPortion: number = 500; 
+
+  // Tracking Data
+  allMeals: any[] = [];
+  displayGLTotal: number = 0; 
+  currentFilter: 'daily' | 'weekly' | 'monthly' = 'daily';
+
+  // Smart Thresholds base configuration metrics
+  userCondition: string = 'General Health Tracking';
+  dailyMaxGL: number = 100; // Base baseline value if no record exists
 
   constructor() {
     addIcons({ radioOutline, warning, fastFood, bulb, alertCircle });
   }
 
   ngOnInit() {
+    this.loadUserProfileMetrics();
     this.listenToIoT();
-    this.calculateDailyTotal();
+    this.fetchMealHistory();
   }
 
   ngOnDestroy() {
     if (this.iotSubscription) this.iotSubscription.unsubscribe();
     if (this.historySubscription) this.historySubscription.unsubscribe();
+    if (this.profileSubscription) this.profileSubscription.unsubscribe();
   }
 
-  // Fetch live scale data from users/UID/scale_data
+  /**
+   * Tracks active biometric conditions to scale thresholds intelligently
+   */
+  loadUserProfileMetrics() {
+    this.profileSubscription = this.firebaseService.getUserProfileObservable().subscribe(profile => {
+      if (profile) {
+        this.userCondition = profile.condition || 'General Health Tracking';
+        
+        // Intelligent Threshold Assignment:
+        // Diabetes management protocols require restrictive daily targets (approx 40-50 GL units total)
+        if (this.userCondition.includes('Diabetes')) {
+          this.dailyMaxGL = 45; 
+        } else if (this.userCondition.includes('Prediabetes')) {
+          this.dailyMaxGL = 60;
+        } else {
+          this.dailyMaxGL = 100; // General health tracker baseline
+        }
+        
+        // Re-calculate the totals and limits based on newly bound rules
+        this.applyFilter();
+      }
+    });
+  }
+
   listenToIoT() {
     this.iotSubscription = this.firebaseService.getLivePlateData().subscribe(data => {
       if (data) {
-        // Summing scale1, scale2, and scale3 for total plate weight
         const total = (Number(data.scale1) || 0) + (Number(data.scale2) || 0) + (Number(data.scale3) || 0);
         this.currentWeight = Math.max(0, Number(total.toFixed(2)));
       }
     });
   }
 
-  // Fetch meal history and sum up GL for TODAY only
-  calculateDailyTotal() {
+  fetchMealHistory() {
     this.historySubscription = this.firebaseService.getRecentMeals().subscribe(meals => {
-      const today = new Date().setHours(0, 0, 0, 0);
-      
-      this.dailyGLIntake = meals
-        .filter(meal => meal.timestamp >= today)
-        .reduce((sum, meal) => sum + (meal.totalGL || 0), 0);
-
-      this.dailyGLIntake = Number(this.dailyGLIntake.toFixed(1));
-      this.checkDailyLimit();
+      this.allMeals = meals;
+      this.applyFilter();
     });
   }
 
-  // Status Getters
+  // Logic to handle switching between Daily, Weekly, and Monthly
+  applyFilter() {
+    const now = new Date();
+    let startTime = 0;
+
+    if (this.currentFilter === 'daily') {
+      startTime = new Date().setHours(0, 0, 0, 0);
+    } else if (this.currentFilter === 'weekly') {
+      startTime = new Date(now.setDate(now.getDate() - 7)).getTime();
+    } else if (this.currentFilter === 'monthly') {
+      startTime = new Date(now.setMonth(now.getMonth() - 1)).getTime();
+    }
+
+    this.displayGLTotal = this.allMeals
+      .filter(meal => meal.timestamp >= startTime)
+      .reduce((sum, meal) => sum + (meal.totalGL || 0), 0);
+
+    this.displayGLTotal = Number(this.displayGLTotal.toFixed(1));
+    
+    if (this.currentFilter === 'daily') {
+      this.checkDailyLimit();
+    }
+  }
+
+  filterChange(event: any) {
+    this.currentFilter = event.detail.value;
+    this.applyFilter();
+  }
+
+  // Dynamic Limit for Progress Bar (UPDATED: Integrates dynamic daily custom limits)
+  get dynamicLimit(): number {
+    if (this.currentFilter === 'weekly') return this.dailyMaxGL * 7; 
+    if (this.currentFilter === 'monthly') return this.dailyMaxGL * 30;
+    return this.dailyMaxGL; 
+  }
+
+  get progress(): number {
+    return Math.min(1, this.displayGLTotal / this.dynamicLimit);
+  }
+
   get weightStatus(): 'too-much' | 'ok' {
     return this.currentWeight > this.idealPortion ? 'too-much' : 'ok';
   }
@@ -91,25 +151,16 @@ export class HomePage implements OnInit, OnDestroy {
     return Math.max(0, this.currentWeight - this.idealPortion);
   }
 
-  // Calculate Progress Bar (0.0 to 1.0)
-  get progress(): number {
-    return Math.min(1, this.dailyGLIntake / this.maxDailyLimit);
-  }
-
+  // UPDATED: Now fires relative to their smart health condition configuration threshold
   async checkDailyLimit() {
-    if (this.dailyGLIntake >= this.maxDailyLimit) {
+    if (this.displayGLTotal >= this.dailyMaxGL) {
       const toast = await this.toastCtrl.create({
-        message: 'Daily GL limit reached! Monitor your intake.',
-        duration: 3000,
+        message: `Daily GL limit (${this.dailyMaxGL}) reached for your profile tracking profile! Monitor your intake.`,
+        duration: 3500,
         color: 'warning',
         position: 'top'
       });
       await toast.present();
     }
   }
-
-filterChange(event: any) {
-  const value = event.detail.value;
-  console.log('Filter changed to:', value);
-}
 }

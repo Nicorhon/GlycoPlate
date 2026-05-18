@@ -63,6 +63,28 @@
             <ion-select-option value="General Health Tracking">General Health</ion-select-option>
           </ion-select>
         </ion-item>
+
+        <ion-grid class="ion-no-padding ion-margin-top">
+          <ion-row style="margin: 0 -4px;">
+            <ion-col size="4" style="padding: 0 4px;">
+              <ion-item class="custom-input-item" style="margin-bottom: 0;">
+                <ion-input label="Weight (kg)" labelPlacement="floating" type="number" [(ngModel)]="healthProfile.weight" placeholder="0"></ion-input>
+              </ion-item>
+            </ion-col>
+            
+            <ion-col size="4" style="padding: 0 4px;">
+              <ion-item class="custom-input-item" style="margin-bottom: 0;">
+                <ion-input label="Height (cm)" labelPlacement="floating" type="number" [(ngModel)]="healthProfile.height" placeholder="0"></ion-input>
+              </ion-item>
+            </ion-col>
+            
+            <ion-col size="4" style="padding: 0 4px;">
+              <ion-item class="custom-input-item" style="margin-bottom: 0;">
+                <ion-input label="Age" labelPlacement="floating" type="number" [(ngModel)]="healthProfile.age" placeholder="0"></ion-input>
+              </ion-item>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
       </ion-list>
 
       <ion-button expand="block" shape="round" (click)="saveHealthProfile()" class="main-button ion-margin-top" color="success">

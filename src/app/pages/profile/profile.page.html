@@ -11,7 +11,6 @@
 
 <ion-content style="--background: #fbfcee;">
   <div class="ion-text-center ion-padding" style="background: #c8d69b; border-bottom-left-radius: 30px; border-bottom-right-radius: 30px; padding-bottom: 30px;">
-    
     <div style="position: relative; display: inline-block; cursor: pointer;" (click)="fileInput.click()">
       <ion-avatar style="width: 110px; height: 110px; margin: 0 auto; border: 4px solid #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
         <img [src]="userData?.photoURL || 'https://ionicframework.com/docs/img/demos/avatar.svg'" />
@@ -33,19 +32,34 @@
   </div>
 
   <div class="ion-padding">
-    <h3 style="color: #343b1b; font-weight: 700; margin-left: 5px;">Active Metrics</h3>
-    <ion-card mode="ios" style="margin: 0; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <h3 style="color: #343b1b; font-weight: 700; margin: 0 0 0 5px;">Active Metrics</h3>
+      
+      <ion-button *ngIf="!isEditing" fill="clear" size="small" (click)="toggleEdit()">
+        <ion-icon slot="start" name="create-outline"></ion-icon> Edit Profile
+      </ion-button>
+      <div *ngIf="isEditing">
+        <ion-button fill="clear" color="danger" size="small" (click)="cancelEdit()">
+          <ion-icon name="close-outline" slot="icon-only"></ion-icon>
+        </ion-button>
+        <ion-button fill="clear" color="success" size="small" (click)="saveProfileChanges()">
+          <ion-icon name="save-outline" slot="icon-only"></ion-icon>
+        </ion-button>
+      </div>
+    </div>
+
+    <ion-card *ngIf="!isEditing" mode="ios" style="margin: 0; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
       <ion-list lines="full">
         <ion-item>
           <ion-icon name="pulse-outline" slot="start" color="primary"></ion-icon>
           <ion-label>
             <h3 style="font-weight: 600;">Status</h3>
             <p style="font-weight: 500; color: var(--ion-color-dark);">
-              {{ userData?.condition || 'Type 2 Diabetes Monitoring' }}
+              {{ userData?.condition || 'General Health Tracking' }}
             </p>
           </ion-label>
         </ion-item>
-        
+
         <ion-item>
           <ion-icon name="nutrition-outline" slot="start" color="primary"></ion-icon>
           <ion-label>
@@ -53,6 +67,93 @@
             <p>{{ totalMealsTracked }} meals logged on Smart Plate</p>
           </ion-label>
         </ion-item>
+
+        <ion-item>
+          <ion-icon name="body-outline" slot="start" color="primary"></ion-icon>
+          <ion-label>
+            <h3 style="font-weight: 600;">Body Mass Index (BMI)</h3>
+            <p *ngIf="bmi > 0" style="font-weight: 500; color: var(--ion-color-dark);">
+              {{ bmi }} — <span style="font-weight: 700; color: var(--ion-color-tertiary);">{{ bmiStatus }}</span>
+            </p>
+            <p *ngIf="bmi === 0" style="color: #eb445a; font-weight: 500;">
+              Missing biometric data. Tap 'Edit Profile' to set up.
+            </p>
+          </ion-label>
+        </ion-item>
+        
+        <ion-item lines="none">
+          <ion-grid class="ion-no-padding" style="width: 100%; padding: 8px 0;">
+            <ion-row class="ion-text-center">
+              <ion-col size="4">
+                <div style="font-size: 0.75rem; color: #666; font-weight: 600; letter-spacing: 0.5px;">WEIGHT</div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: #343b1b; margin-top: 2px;">
+                  {{ userData?.weight || '--' }} <span style="font-size: 0.8rem; font-weight: 400; opacity: 0.8;">kg</span>
+                </div>
+              </ion-col>
+              <ion-col size="4" style="border-left: 1px solid #eee; border-right: 1px solid #eee;">
+                <div style="font-size: 0.75rem; color: #666; font-weight: 600; letter-spacing: 0.5px;">HEIGHT</div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: #343b1b; margin-top: 2px;">
+                  {{ userData?.height || '--' }} <span style="font-size: 0.8rem; font-weight: 400; opacity: 0.8;">cm</span>
+                </div>
+              </ion-col>
+              <ion-col size="4">
+                <div style="font-size: 0.75rem; color: #666; font-weight: 600; letter-spacing: 0.5px;">AGE</div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: #343b1b; margin-top: 2px;">
+                  {{ userData?.age || '--' }} <span style="font-size: 0.8rem; font-weight: 400; opacity: 0.8;">yrs</span>
+                </div>
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+        </ion-item>
+      </ion-list>
+    </ion-card>
+
+    <ion-card *ngIf="isEditing" mode="ios" style="margin: 0; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);" class="ion-padding">
+      <ion-list lines="none">
+        
+        <ion-item style="--background: #f7f7f7; border-radius: 10px; margin-bottom: 10px;">
+          <ion-icon name="person-outline" slot="start" color="primary"></ion-icon>
+          <ion-input label="Full Name" labelPlacement="floating" type="text" [(ngModel)]="editData.displayName"></ion-input>
+        </ion-item>
+
+        <ion-item style="--background: #f7f7f7; border-radius: 10px; margin-bottom: 15px;">
+          <ion-icon name="pulse-outline" slot="start" color="primary"></ion-icon>
+          <ion-select label="Condition" labelPlacement="floating" [(ngModel)]="editData.condition">
+            <ion-select-option value="Type 2 Diabetes Monitoring">Type 2 Diabetes</ion-select-option>
+            <ion-select-option value="Type 1 Diabetes Tracking">Type 1 Diabetes</ion-select-option>
+            <ion-select-option value="Prediabetes Preventive Management">Prediabetes</ion-select-option>
+            <ion-select-option value="General Health Tracking">General Health</ion-select-option>
+          </ion-select>
+        </ion-item>
+
+        <ion-grid class="ion-no-padding">
+          <ion-row style="margin: 0 -4px;">
+            <ion-col size="4" style="padding: 0 4px;">
+              <ion-item style="--background: #f7f7f7; border-radius: 10px; --inner-padding-end: 0;">
+                <ion-input label="W (kg)" labelPlacement="floating" type="number" [(ngModel)]="editData.weight" placeholder="0"></ion-input>
+              </ion-item>
+            </ion-col>
+            <ion-col size="4" style="padding: 0 4px;">
+              <ion-item style="--background: #f7f7f7; border-radius: 10px; --inner-padding-end: 0;">
+                <ion-input label="H (cm)" labelPlacement="floating" type="number" [(ngModel)]="editData.height" placeholder="0"></ion-input>
+              </ion-item>
+            </ion-col>
+            <ion-col size="4" style="padding: 0 4px;">
+              <ion-item style="--background: #f7f7f7; border-radius: 10px; --inner-padding-end: 0;">
+                <ion-input label="Age" labelPlacement="floating" type="number" [(ngModel)]="editData.age" placeholder="0"></ion-input>
+              </ion-item>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+
+        <ion-row class="ion-margin-top">
+          <ion-col>
+            <ion-button expand="block" shape="round" color="success" (click)="saveProfileChanges()">
+              <ion-icon slot="start" name="save-outline"></ion-icon> Save
+            </ion-button>
+          </ion-col>
+        </ion-row>
+
       </ion-list>
     </ion-card>
 

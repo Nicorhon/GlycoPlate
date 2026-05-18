@@ -32,6 +32,7 @@ export class HomePage implements OnInit, OnDestroy {
   
   private iotSubscription: Subscription | undefined;
   private historySubscription: Subscription | undefined;
+  private profileSubscription: Subscription | undefined; // Added subscription tracker for health profiles
 
   // IoT Sensor Data
   currentWeight: number = 0; 
@@ -42,11 +43,16 @@ export class HomePage implements OnInit, OnDestroy {
   displayGLTotal: number = 0; 
   currentFilter: 'daily' | 'weekly' | 'monthly' = 'daily';
 
+  // Smart Thresholds base configuration metrics
+  userCondition: string = 'General Health Tracking';
+  dailyMaxGL: number = 100; // Base baseline value if no record exists
+
   constructor() {
     addIcons({ radioOutline, warning, fastFood, bulb, alertCircle });
   }
 
   ngOnInit() {
+    this.loadUserProfileMetrics();
     this.listenToIoT();
     this.fetchMealHistory();
   }
@@ -54,6 +60,31 @@ export class HomePage implements OnInit, OnDestroy {
   ngOnDestroy() {
     if (this.iotSubscription) this.iotSubscription.unsubscribe();
     if (this.historySubscription) this.historySubscription.unsubscribe();
+    if (this.profileSubscription) this.profileSubscription.unsubscribe();
+  }
+
+  /**
+   * Tracks active biometric conditions to scale thresholds intelligently
+   */
+  loadUserProfileMetrics() {
+    this.profileSubscription = this.firebaseService.getUserProfileObservable().subscribe(profile => {
+      if (profile) {
+        this.userCondition = profile.condition || 'General Health Tracking';
+        
+        // Intelligent Threshold Assignment:
+        // Diabetes management protocols require restrictive daily targets (approx 40-50 GL units total)
+        if (this.userCondition.includes('Diabetes')) {
+          this.dailyMaxGL = 45; 
+        } else if (this.userCondition.includes('Prediabetes')) {
+          this.dailyMaxGL = 60;
+        } else {
+          this.dailyMaxGL = 100; // General health tracker baseline
+        }
+        
+        // Re-calculate the totals and limits based on newly bound rules
+        this.applyFilter();
+      }
+    });
   }
 
   listenToIoT() {
@@ -80,10 +111,8 @@ export class HomePage implements OnInit, OnDestroy {
     if (this.currentFilter === 'daily') {
       startTime = new Date().setHours(0, 0, 0, 0);
     } else if (this.currentFilter === 'weekly') {
-      // Last 7 days
       startTime = new Date(now.setDate(now.getDate() - 7)).getTime();
     } else if (this.currentFilter === 'monthly') {
-      // Last 30 days
       startTime = new Date(now.setMonth(now.getMonth() - 1)).getTime();
     }
 
@@ -103,11 +132,11 @@ export class HomePage implements OnInit, OnDestroy {
     this.applyFilter();
   }
 
-  // Dynamic Limit for Progress Bar
+  // Dynamic Limit for Progress Bar (UPDATED: Integrates dynamic daily custom limits)
   get dynamicLimit(): number {
-    if (this.currentFilter === 'weekly') return 700; 
-    if (this.currentFilter === 'monthly') return 3000;
-    return 100; // Daily default
+    if (this.currentFilter === 'weekly') return this.dailyMaxGL * 7; 
+    if (this.currentFilter === 'monthly') return this.dailyMaxGL * 30;
+    return this.dailyMaxGL; 
   }
 
   get progress(): number {
@@ -122,11 +151,12 @@ export class HomePage implements OnInit, OnDestroy {
     return Math.max(0, this.currentWeight - this.idealPortion);
   }
 
+  // UPDATED: Now fires relative to their smart health condition configuration threshold
   async checkDailyLimit() {
-    if (this.displayGLTotal >= 100) {
+    if (this.displayGLTotal >= this.dailyMaxGL) {
       const toast = await this.toastCtrl.create({
-        message: 'Daily GL limit reached! Monitor your intake.',
-        duration: 3000,
+        message: `Daily GL limit (${this.dailyMaxGL}) reached for your profile tracking profile! Monitor your intake.`,
+        duration: 3500,
         color: 'warning',
         position: 'top'
       });
