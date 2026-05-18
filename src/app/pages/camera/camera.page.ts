@@ -234,7 +234,7 @@ async analyzePlate(base64: string) {
 
     const toast = await this.toastCtrl.create({
       message: info.msg,
-      duration: 4000,
+      duration: 10000,
       position: 'top',
       icon: info.icon,
       cssClass: 'glyco-toast-error',
@@ -305,6 +305,41 @@ async saveToLibrary() {
   get canLog() { 
     return this.portions.length > 0 && this.portions.every(p => p.status === 'NORMAL'); 
   }
+
+  async updateUnidentifiedItem(index: number, typedName: any, typedGI: any) {
+  const name = String(typedName || '').trim();
+  const giValue = Number(typedGI);
+
+  if (!name || isNaN(giValue) || giValue <= 0) {
+    alert("Please fill out both the Food Name and a valid GI number.");
+    return;
+  }
+
+  // Use a temporary default carb density estimate of 15% for unknown metrics
+  const weight = this.portions[index].weight;
+  const estimatedCarbsDensity = 15; 
+  const netCarbs = weight * (estimatedCarbsDensity / 100);
+  const calculatedGL = (giValue * netCarbs) / 100;
+
+  // Remap the targeted slice directly out of yellow warning block
+  this.portions[index] = this.formatPortion(
+    name,
+    weight,
+    calculatedGL,
+    'Manually declared item',
+    giValue
+  );
+
+  // Re-evaluate if the newly typed metrics spike the global threshold limits
+  const hasHighGL = this.portions.some(p => p.status === 'TOO MUCH');
+  if (hasHighGL) {
+    this.showHighGLModal = true;
+    this.showSuccessModal = false;
+  } else {
+    this.showSuccessModal = true;
+    this.showHighGLModal = false;
+  }
+}
 
   async confirmAndSave() {
     try {

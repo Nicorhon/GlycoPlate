@@ -6,21 +6,16 @@
 }
 
 .header-section {
-  /* Adjusted margins to account for the larger logo */
   margin-top: 0%; 
   margin-bottom: 0%;
 
   .app-logo {
-    /* Large, bold logo size as requested */
     width: 280px; 
     height: auto;
     margin: 0 auto;
     display: block;
-    /* Soft shadow to help the logo pop against the off-white background */
     filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.08));
   }
-
-  /* Note: .logo-container and h1 styles removed as they are no longer in the HTML */
 
   .subtitle {
     color: var(--ion-color-tertiary);
@@ -32,7 +27,6 @@
 }
 
 .form-container {
-  /* Gives the inputs a bit of breathing room on mobile */
   padding: 0 16px;
 }
 
@@ -42,12 +36,10 @@
   --padding-start: 15px;
   margin-bottom: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-  /* Using your custom Sage Green for a subtle border */
   border: 1px solid rgba(200, 214, 155, 0.4); 
 }
 
 .main-button {
-  /* Using your Blue palette for the primary action */
   --background: var(--ion-color-primary);
   --color: white;
   height: 54px;
@@ -61,4 +53,34 @@
   font-size: 0.85rem;
   margin-top: 12px;
   font-weight: 500;
+}
+
+.custom-glyco-toast {
+  --border-radius: 16px;
+  --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  font-weight: 500;
+  
+  // SUCCESS STATE
+  &.color-success {
+    --background: #c8d69b;
+    --color: #343b1b;
+  }
+  
+  // DANGER STATE
+  &.color-danger {
+    --background: #eb445a;
+    --color: #ffffff;
+  }
+
+  // WARNING STATE
+  &.color-warning {
+    --background: #f6e6a5; 
+    --color: #5c4811;    
+  }
+
+  // DEFAULT/DARK STATE
+  &.color-dark {
+    --background: #343b1b;
+    --color: #ffffff;
+  }
 }

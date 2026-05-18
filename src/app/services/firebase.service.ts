@@ -1,12 +1,12 @@
 import { Injectable, inject } from '@angular/core';
 import { 
-  Database, ref, push, set, get, objectVal, listVal, remove 
+  Database, ref, push, set, get, objectVal, listVal, remove, child 
 } from '@angular/fire/database';
 import { 
   Auth, user, createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, signOut 
+  signInWithEmailAndPassword, signOut, sendEmailVerification
 } from '@angular/fire/auth';
-import { Observable, switchMap, map, of } from 'rxjs';
+import { Observable, switchMap, map, of, from } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { MealData, MealPortion } from '../models/meal.model';
@@ -21,21 +21,23 @@ export class FirebaseService {
   
   user$ = user(this.auth);
 
+  /**
+   * Registers a user account using basic credentials.
+   * Note: We removed the initial default 'profile' generation block from here 
+   * so it doesn't conflict with the manual health setup onboarding step.
+   */
   async signUp(email: string, pass: string) {
     const credential = await createUserWithEmailAndPassword(this.auth, email, pass);
     const uid = credential.user.uid;
 
-    return set(ref(this.database, `users/${uid}`), {
-      profile: {
-        email: email,
-        createdAt: new Date().toISOString()
-      },
-      scale_data: {
-        scale1: 0,
-        scale2: 0,
-        scale3: 0
-      }
+    // Initialize only the hardware scale layout configurations for the IoT stream on signup
+    await set(ref(this.database, `users/${uid}/scale_data`), {
+      scale1: 0,
+      scale2: 0,
+      scale3: 0
     });
+
+    return credential;
   }
 
   async login(email: string, pass: string) {
@@ -44,7 +46,75 @@ export class FirebaseService {
 
   async logout() {
     await signOut(this.auth);
-    this.router.navigate(['/login']);
+    this.router.navigate(['/login']); // Pointing cleanly to your single auth state page
+  }
+
+  /**
+   * Sends the native Firebase account activation confirmation link
+   */
+  async sendVerificationLink() {
+    if (this.auth.currentUser) {
+      await sendEmailVerification(this.auth.currentUser);
+    }
+  }
+
+  /**
+   * Refreshes the user session to verify if they have completed email authentication
+   */
+  async reloadAndCheckVerification(): Promise<boolean> {
+    if (this.auth.currentUser) {
+      await this.auth.currentUser.reload();
+      return this.auth.currentUser.emailVerified;
+    }
+    return false;
+  }
+
+  /**
+   * Validates if a user's health profile information already exists in the system
+   */
+  async checkProfileExists(uid: string): Promise<boolean> {
+    const snapshot = await get(child(ref(this.database), `users/${uid}/profile`));
+    return snapshot.exists();
+  }
+
+  /**
+   * Commits the custom GlycoPlate onboarding health parameters to the user's profile node
+   */
+  async saveUserProfileData(profileData: { displayName: string, condition: string }) {
+    const currentUser = this.auth.currentUser;
+    if (!currentUser) throw new Error("Session expired. Please log in again.");
+    
+    const nodeRef = ref(this.database, `users/${currentUser.uid}/profile`);
+    return set(nodeRef, {
+      email: currentUser.email,
+      displayName: profileData.displayName,
+      condition: profileData.condition,
+      uid: currentUser.uid,
+      photoURL: '',
+      createdAt: new Date().toISOString()
+    });
+  }
+
+  /**
+   * Core reactive stream that returns full profile metadata 
+   * to populate the "My Health ID" badge layout
+   */
+  getUserProfileObservable(): Observable<any> {
+    return this.user$.pipe(
+      filter(u => !!u),
+      switchMap(u => {
+        if (!u) return of(null);
+        const profileRef = ref(this.database, `users/${u.uid}/profile`);
+        return objectVal(profileRef);
+      })
+    );
+  }
+
+  /**
+   * Legacy method template matching your ProfilePage structure references
+   */
+  getUserProfileData(): Observable<any> {
+    return this.getUserProfileObservable();
   }
 
   /**
@@ -61,8 +131,7 @@ export class FirebaseService {
   }
 
   /**
-   * NEW: Saves "user invented meals" or custom food data to the library
-   * This allows the app to recognize the food in future scans.
+   * Saves "user invented meals" or custom food data to the library
    */
   async saveCustomFood(foodName: string, foodData: { carbsPer100g: number, glycemicIndex: number, advice: string }) {
     const searchKey = foodName.toLowerCase().trim();
@@ -153,13 +222,12 @@ export class FirebaseService {
     return remove(mealRef);
   }
 
-  getUserProfileData(): Observable<any> {
-    return this.user$.pipe(
-      filter(u => !!u),
-      switchMap(u => {
-        const profileRef = ref(this.database, `users/${u?.uid}/profile`);
-        return objectVal(profileRef);
-      })
-    );
-  }
+  async updateProfilePicture(base64String: string) {
+  const uid = this.auth.currentUser?.uid;
+  if (!uid) throw new Error("No active user session");
+
+  // Targets users/${uid}/profile/photoURL node directly
+  const photoNodeRef = ref(this.database, `users/${uid}/profile/photoURL`);
+  return set(photoNodeRef, base64String);
+}
 }

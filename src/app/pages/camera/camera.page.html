@@ -5,7 +5,7 @@
     </ion-buttons>
     <ion-title style="font-weight: 700; letter-spacing: 1px;">GLYCOPLATE AI</ion-title>
     <ion-buttons slot="end">
-      <ion-badge color="light" mode="ios" style="margin-right: 10px;">BETA</ion-badge>
+      <ion-badge color="light" mode="ios" style="margin-right: 10px;"></ion-badge>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
@@ -95,25 +95,51 @@
           </div>
 
         <ion-list lines="none">
-          <ion-item *ngFor="let p of portions">
-            <ion-label>
-              <h2 style="font-weight: 800; font-size: 1.3rem; margin-bottom: 8px; color: var(--ion-color-dark);">
-                {{ p.label | titlecase }}
-              </h2>
+          <div *ngFor="let p of portions; let i = index">
+            
+            <div *ngIf="p.color === 'warning'" class="unidentified-form-box" style="background: rgba(255, 196, 9, 0.08); border-radius: 12px; margin-bottom: 15px; padding: 12px; border-left: 4px solid var(--ion-color-warning);">
+              <ion-item-divider color="warning" mode="md" style="background: transparent; border: none; margin-bottom: 8px;">
+                <ion-label style="font-weight: 700; color: var(--ion-color-warning-shade);">
+                  IDENTIFY: Section {{ i + 1 }} ({{ p.weight }}g)
+                </ion-label>
+              </ion-item-divider>
 
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <p>Weight: <strong>{{ p.weight }}g</strong></p>
-                <ion-badge [color]="p.color">{{ p.status }}</ion-badge>
-              </div>
-              <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <ion-badge color="primary">GI: {{ p.gi }}</ion-badge>
-                <ion-badge color="dark">GL: {{ p.gl }}</ion-badge>
-              </div>
-              <p class="ion-padding-top" style="font-style: italic; color: #666; font-size: 0.9rem;">{{ p.advice }}</p>
-              
-              <div style="border-bottom: 1px solid #eee; margin-top: 15px;"></div>
-            </ion-label>
-          </ion-item>
+              <ion-item lines="inset" style="--background: transparent;">
+                <ion-input #manualName type="text" label="Food Name" labelPlacement="floating" placeholder="e.g., Putong Puti"></ion-input>
+              </ion-item>
+
+              <ion-item lines="inset" style="--background: transparent; margin-bottom: 8px;">
+                <ion-input #manualGI type="number" label="Glycemic Index (GI)" labelPlacement="floating" placeholder="e.g., 75"></ion-input>
+              </ion-item>
+
+              <ion-button expand="block" color="warning" size="small" style="margin-inline: 8px; font-weight: 600;"
+                (click)="updateUnidentifiedItem(i, manualName.value, manualGI.value)">
+                <ion-icon name="sparkles-outline" slot="start"></ion-icon>
+                CALCULATE TARGET VALUES
+              </ion-button>
+            </div>
+
+            <ion-item *ngIf="p.color !== 'warning'">
+              <ion-label>
+                <h2 style="font-weight: 800; font-size: 1.3rem; margin-bottom: 8px; color: var(--ion-color-dark);">
+                  {{ p.label | titlecase }}
+                </h2>
+
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <p>Weight: <strong>{{ p.weight }}g</strong></p>
+                  <ion-badge [color]="p.color">{{ p.status }}</ion-badge>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                  <ion-badge color="primary">GI: {{ p.gi }}</ion-badge>
+                  <ion-badge color="dark">GL: {{ p.gl }}</ion-badge>
+                </div>
+                <p class="ion-padding-top" style="font-style: italic; color: #666; font-size: 0.9rem;">{{ p.advice }}</p>
+                
+                <div style="border-bottom: 1px solid #eee; margin-top: 15px;"></div>
+              </ion-label>
+            </ion-item>
+
+          </div>
 
           <ion-item-divider mode="md" style="margin-top: 10px;">
             <ion-label>ADJUSTMENTS</ion-label>

@@ -13,7 +13,7 @@ export const environment = {
   messagingSenderId: "389522456261",
   appId: "1:389522456261:web:2fbba18984e2515204baac"
   },
-  geminiApiKey: 'AIzaSyCuyH8HTjDPcNVsWdF1zBjS-vvpgqUKkVI'
+  geminiApiKey: ''
 };
 
 /*

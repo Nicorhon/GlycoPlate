@@ -10,8 +10,6 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { radioOutline, warning, fastFood, bulb, alertCircle } from 'ionicons/icons';
-
-// 1. Import Firebase Service and Subscription
 import { FirebaseService } from '../services/firebase.service';
 import { Subscription } from 'rxjs';
 
@@ -59,7 +57,7 @@ export class HomePage implements OnInit, OnDestroy {
     if (this.historySubscription) this.historySubscription.unsubscribe();
   }
 
-  // 2. Fetch live scale data from users/UID/scale_data
+  // Fetch live scale data from users/UID/scale_data
   listenToIoT() {
     this.iotSubscription = this.firebaseService.getLivePlateData().subscribe(data => {
       if (data) {
@@ -70,7 +68,7 @@ export class HomePage implements OnInit, OnDestroy {
     });
   }
 
-  // 3. Fetch meal history and sum up GL for TODAY only
+  // Fetch meal history and sum up GL for TODAY only
   calculateDailyTotal() {
     this.historySubscription = this.firebaseService.getRecentMeals().subscribe(meals => {
       const today = new Date().setHours(0, 0, 0, 0);
@@ -109,10 +107,9 @@ export class HomePage implements OnInit, OnDestroy {
       await toast.present();
     }
   }
-  // inside home.page.ts class
+
 filterChange(event: any) {
   const value = event.detail.value;
   console.log('Filter changed to:', value);
-  // You can use this later to switch between Daily/Weekly views
 }
 }
